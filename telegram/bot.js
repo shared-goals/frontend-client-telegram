@@ -111,13 +111,13 @@ msgObserver
  
  https://cloud.yandex.ru/docs/functions/quickstart/function-quickstart
  
- $ yc serverless function version create \
-   --function-name=my-python-function \ # Имя функции.
-   --runtime python37 \ # Среда выполнения.
-   --entrypoint main.handler \ # Обработчик, указывается в формате <имя файла с функцией>.<имя обработчика>.
-   --memory 128m \ # Объем RAM.
-   --execution-timeout 5s \ # Максимальное время выполнения функции до таймаута.
-   --source-path ./hello-py.zip # ZIP-архив c кодом функции и всеми необходимыми зависимостями.
+$ yc serverless function version create \
+--function-name=my-nodejs-function \ # Имя функции.
+--runtime nodejs12 \ # Среда выполенения.
+--entrypoint index.handler \ # Обработчик, указывается в формате <имя файла с функцией>.<имя обработчика>.
+--memory 128m \ # Объем RAM.
+--execution-timeout 5s \ # Максимальное время выполнения функции до таймаута.
+--source-path ./hello-js.zip # ZIP-архив c кодом функции и всеми необходимыми зависимостями.
  
  **/
 
