@@ -40,8 +40,22 @@ function MsgActions () {
 
 /**
  * Наблюдатель который оповещает о новых сообщениях
+ * Переделать на web_hook от Yandex Function https://functions.yandexcloud.net/d4efasnhvk9uo58bdrju
+ 
+ https://cloud.yandex.ru/docs/functions/quickstart/function-quickstart
+ 
+$ yc serverless function version create \
+--function-name=my-nodejs-function \ # Имя функции.
+--runtime nodejs12 \ # Среда выполенения.
+--entrypoint index.handler \ # Обработчик, указывается в формате <имя файла с функцией>.<имя обработчика>.
+--memory 128m \ # Объем RAM.
+--execution-timeout 5s \ # Максимальное время выполнения функции до таймаута.
+--source-path ./hello-js.zip # ZIP-архив c кодом функции и всеми необходимыми зависимостями.
+ 
  * @constructor
- */
+ **/
+
+
 function MsgObserver(){
     let self = this
     
