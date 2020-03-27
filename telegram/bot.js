@@ -107,6 +107,18 @@ msgObserver
 
 /**
  * Наблюдатель который оповещает о новых сообщениях
+ * Переделать на web_hook от Yandex Function https://functions.yandexcloud.net/d4efasnhvk9uo58bdrju
+ 
+ https://cloud.yandex.ru/docs/functions/quickstart/function-quickstart
+ 
+ $ yc serverless function version create \
+   --function-name=my-python-function \ # Имя функции.
+   --runtime python37 \ # Среда выполнения.
+   --entrypoint main.handler \ # Обработчик, указывается в формате <имя файла с функцией>.<имя обработчика>.
+   --memory 128m \ # Объем RAM.
+   --execution-timeout 5s \ # Максимальное время выполнения функции до таймаута.
+   --source-path ./hello-py.zip # ZIP-архив c кодом функции и всеми необходимыми зависимостями.
+ 
  **/
 
 function MsgObserver(){
