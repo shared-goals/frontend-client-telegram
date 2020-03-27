@@ -1,105 +1,348 @@
 require('dotenv').config()
-const Telegraf = require('telegraf')
 
-const bot = new Telegraf(process.env.BOT_TOKEN)
+'use strict'
 
-bot.start((ctx) => ctx.reply('Welcome'))
+let request = require('request')
+let token = '1102699634:AAHKHlzKqPddGpzBGi4sGzfDYeH6n1qFYUc'
+let TGAPI = `https://api.telegram.org/bot${token}`
+let SGAPI = `http://127.0.0.1:3030`
+let msgObserver = new MsgObserver()
+let msgActions = new MsgActions()
+let inProgressUpdate = false
+let lastUpdate = 0
+let msgCounter = 0
+let updateCounter = 0
+let currentUser = null
 
-bot.command('newgoal', (ctx) => ctx.reply('Hello'))
-
-// Create new shared goal
-
-// Syntax:
-// /newgoal 
-// Ask Goal Name 
-// Ask Privacy: Shared, Unlisted, Private
-// Ask Contract: 10[m|h] [everyday/every monday,thursday/every 1,10]
-// Ask Description 
-
-// Returns:
-// Goal: Shared Goal Development
-// Contract: 1 hour Everyday
-// To Share: /contract "Bongiozzo.Shared Goals Development" 1h everyday
-
-    var goal_name;
-    var privacy;
-    var minutes;
-    var occurence {
-        daily: Boolean;
-        weekdays: [Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday];
-        monthdays: [1..31];
+function MsgActions () {
+    this.list = {}
+    this.idByKeyMap = {}
+    this.set = (action) => {
+        this.list[action.key] = action
+        this.idByKeyMap[action.id] = action.key
     }
-    var description;
+    this.get = (key) => {
+        return (typeof this.list[key] !== 'undefined' ? this.list[key] : this.list[this.idByKeyMap[key]])
+    }
+}
 
-    var goal_id = create_goal (user_id, goal_name, privacy, desciption);
-    create_contract(user_id, goal_id, minutes, occurence);  
+// назначаем интерфейнсные скрины / кнопки
+msgActions.set({
+    id: 'welcome',
+    key: 'welcome',
+    text: 'Welcome to SharedGoals service.',
+    reply_markup: JSON.stringify({
+        keyboard: [
+            [
+                {text: `🧰 Goals`, callback_data: 'goals'},
+                {text: `🛠 Settings`}
+            ]
+        ],
+        resize_keyboard: true
+    })
+})
+msgActions.set({
+    // external: true,
+    id: 'goals',
+    key: '🧰 Goals',
+    text: 'What do you mean?',
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [
+                {text: `🗂 List all`, callback_data: 'listAllGoals'},
+                {text: `🧰 New goal`, callback_data:'createNewGoal'},
+            ],[
+                {text: `⬅️ Back`, callback_data:'welcome'}
+            ]
+        ]
+    })
+})
 
-bot.command('editgoals', (ctx) => ctx.reply('Hello'))
+// Settings from subs to parent
+msgActions.set({
+    id: 'changeLanguage',
+    key: `🇷🇺 Change language`,
+    text: `🇷🇺 Change language`,
+    callback_data:'chLang'
+})
+msgActions.set({
+    id: 'chLang',
+    key: `🇷🇺 Select language`,
+    text: `🇷🇺 Select language`,
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [
+                {text: `🇬🇧 English`, callback_data:'en'},
+                {text: `🇷🇺 Русский`, callback_data:'ru'}
+            ],[
+                {text: `⬅️ Back`, callback_data:'welcome'}
+            ]
+        ]
+    })
+})
+msgActions.set({
+    id: 'settings',
+    key: '🛠 Settings',
+    text: 'Select Settings below',
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [
+                msgActions.get('changeLanguage')
+            ],[
+                {text: `⬅️ Back`, callback_data:'welcome'}
+            ]
+        ]
+    })
+})
+msgActions.set({
+    id: 'listAllGoals',
+})
 
-// Edit your goals. Other members will be notified. 
 
-// Syntax:
-// /editgoals
-// Lists all goals as buttons
-// After press goal's button show Action buttons
-// Edit Name
-// Edit Privacy
-// Edit Description
-// Edit Contract
+// назначаем кастомные слушатели и запускаем
+msgObserver
+    .subscribe(listAllGoalsHandler)
+    .subscribe(startHandler)
+    .start()
+
+/**
+ * Наблюдатель который оповещает о новых сообщениях
+ **/
+
+function MsgObserver(){
+    let self = this
+
+    const doReport = false  // Логировать ли количества сообщения в лог
+
+    let listeners = []      // Массив обработчиков
+    let timeouts = {        // Таймауты
+        observe: 1000,      // ... наблюдения за командами от Telegram
+        report: 60000       // ... логирования сообщений
+    }
     
-bot.command('contract', (ctx) => ctx.reply('Hello'))
+    /**
+     * Метод добавляет слушатель / обработчик команд
+     * @param func
+     * @returns {MsgObserver}
+     */
+    function subscribe(func){
+        listeners.push(func)
+        return self
+    }
+    
+    /**
+     * Метод запускает конкретный слушатель / обработчик команд
+     * @param data
+     * @returns {MsgObserver}
+     */
+    function triggered(data){
+        listeners.forEach((func) => {
+            func(data.message || data.callback_query)
+        })
+        return self
+    }
+    
+    /**
+     * Метод получает новые данные с сервера телеграма
+     **/
+    function update(observer){
+        if(!inProgressUpdate){
+            let msg
+            inProgressUpdate = true
+            
+            makeRequest('getUpdates', {offset: lastUpdate + 1})
+                .then( (data) => {
+                    data.result.forEach( (item) => {
+                        msgCounter += 1
+                        msg = item.message || item.callback_query
+                        let log = `\r\nНовое сообщение от ${msg.from.username}\r\nPOST ${TGAPI}/getUpdates\r\n`
+                        
+                        if (item.update_id > lastUpdate) {
+                            lastUpdate = item.update_id
+                        }
 
-// Join other goal 
-
-// Syntax:
-// /contract 
-// Ask Goal Name
-// Ask contract: 10[m|h] [everyday/every monday,thursday/every 1,10]]
-
-// Returns:
-// Goal: Bongiozzo.Shared Goals Development
-// Contract: 1 hour Every Tuesday, Thursday 
-// To Share: /contract "Bongiozzo.Shared Goal Development" 1h everyday
-
-    var goal_name;
-    var duration;
-    var occurence;
-
-    goal_id = check_join(user_id, goal_name);
-    create_contract(user_id, goal_id, duration, occurence);  
-
-bot.command('commits', (ctx) => ctx.reply('Hello'))
-
-// Returns list of Contracts for new commit
-
-// Syntax:
-// /commits
-// Lists all active contracts as buttons
-// Bongiozzo.Shared Goals Development 1h
-// Enter VGIK contest 3h
-// Other contracts:
-// Singing Practice 2h
-
-    contracts = get_contracts(user_id)
-    foreach () {
-
+                        if (msg.data) {
+                            console.log(`${log}inline кнопка: ${msg.data}\r\n`)
+                        } else {
+                            console.log(`${log}Текст: ${msg.text}\r\n`)
+                        }
+                        
+                        
+                        observer.triggered(item)
+                    })
+                    
+                    inProgressUpdate = false
+                })
+        }
+    }
+    
+    /**
+     * Метод запускает наблюдение за сообщениями
+     * @returns {MsgObserver}
+     */
+    function start () {
+        setInterval(update, timeouts.observe, self)
+        return self
     }
 
-// Lists contract's Duration as button or propose to enter Duration
-// Provide text for What Was Done from last What's Next to Approve or change
-// Ask What's Next
+    // Если в настройках задан репортинг в лог - запускаем его
+    if (doReport === true) {
+        setInterval(function () {
+            console.log(`\r\nЗа 1min отправлено ${updateCounter} POST запросов на Telegram API getUpdates.\r\nОбработано ${msgCounter} сообщений\r\n`)
+            msgCounter = 0
+            updateCounter = 0
+        }, timeouts.report)
+    }
+    
+    // подписываем основной общий слушатель / обработчик команд
+    subscribe( function (msg) {
+        let opt = msgActions.get(msg.data || msg.text.replace(/^\//, ''))
+        if (typeof opt !== 'undefined') {
+            opt.chat_id = msg.from.id
+            makeRequest('sendMessage', opt)
+                .then(() => {
+                    console.log(`\r\nОтправка сообщения от ${msg.from.username}\r\nPOST ${TGAPI}/sendMessage\r\nBody: ${JSON.stringify(opt, '', 4)}\r\n`)
+                })
+        } else {
+            console.error('action не найден', msg)
+        }
+    })
+    
+    console.log('Включен режим опроса, демон опрашивает сервера Telegram на наличие обновлений для бота')
+    
+    self.subscribe = subscribe
+    self.triggered = triggered
+    self.start = start
+}
 
-// Show all info and ask to approve
+/**
+ * Вспомогательная функция для использования внешних и внутренних API
+ **/
+function makeRequest(method, args = {}) {
+    let address = args.external === true ? SGAPI : TGAPI
+    return new Promise((resolve, reject) => {
+        updateCounter++
+        let opt = {
+            method: args.method || 'POST',
+            url: `${address}/${method}`,
+            form: args,
+            user_id: currentUser ? currentUser.id : 0
+        }
+        if (args.external) console.log(opt)
+        request(opt, (error, response, body) => {
+            if (!error) {
+                resolve(JSON.parse(body))
+            } else {
+                reject(error)
+            }
+        })
+    })
+}
 
-// All contracters receive notification about progress for the goal
+/**
+ *
+ */
+function startHandler (msg) {
+    if(msg.text && msg.text === '/start'){
+        let opt = {
+            chat_id: msg.from.id,
+            external: true,
+            method: 'GET'
+        }
+        let action
+       
+        makeRequest('sendMessage', {
+            chat_id: msg.from.id,
+            text: 'Getting user data...'
+        })
+        
+        makeRequest('users/email/' + (msg.from.username || msg.from.id) + '@t.me', opt)
+            .then((response) => {
+                currentUser = response
+                if (!response.hasOwnProperty('id')) {
+                    makeRequest('sendMessage', {
+                        chat_id: msg.from.id,
+                        text: 'Registering user...'
+                    })
+                    let opt = {
+                        chat_id: msg.from.id,
+                        external: true,
+                        method: 'POST',
+                        email: msg.from.username + '@t.me',
+                        password: msg.from.id
+                    }
+                    makeRequest('register', opt)
+                        .then((response) => {
+                            currentUser = response
+                            makeRequest('sendMessage', {
+                                chat_id: msg.from.id,
+                                text: 'User ' + msg.from.username + ' registered...'
+                            })
+                            action = msgActions.get('welcome')
+                            action.chat_id = msg.from.id
+                            makeRequest('sendMessage', action)
+                        })
+                } else {
+                    action = msgActions.get('welcome')
+                    action.chat_id = msg.from.id
+                    makeRequest('sendMessage', action)
+                }
+            })
+    }
+}
 
-    var goal_name;
-    var duration;
-    var whats_done;
-    var whats_next;
-
-    goal_id = check_commit(user_id, goal_name);
-    commit(user_id, goal_id, duration, whats_done, whats_next)
-
-
-bot.launch()
+/**
+ *
+ */
+function listAllGoalsHandler (msg) {
+    if(msg.data && msg.data === 'listAllGoals'){
+        let opt = {
+            chat_id: msg.from.id,
+            external: true,
+            method: 'GET'
+        }
+        
+        makeRequest('sendMessage', {
+            chat_id: msg.from.id,
+            text: 'Fetching goals data...'
+        })
+        makeRequest('goals', opt)
+            .then((response) => {
+                let goals = []
+                response.forEach((goal) => {
+                    goals.push([
+                        {
+                            text: goal.title,
+                            callback_data: 'goal_id_' + goal.id
+                        },
+                    ])
+                    msgActions.set({
+                        id: 'goal_id_' + goal.id,
+                        key: '🛠 Goal ' + goal.id,
+                        text: goal.text,
+                        reply_markup: JSON.stringify({
+                            inline_keyboard: [
+                                [
+                                    {text: `🗂 Set contract`, callback_data: 'setGoalContract'},
+                                    {text: `💵 Set commit`, callback_data: 'setGoalCommit'}
+                                ],[
+                                    {text: `⬅️ Back`, callback_data: 'listAllGoals'}
+                                ]
+                            ]
+                        })
+                    })
+                })
+                goals.push([
+                    {text: `🧰 New goal`, callback_data:'createNewGoal'},
+                    {text: `⬅️ Back`, callback_data:'welcome'}
+                ])
+                makeRequest('sendMessage', {
+                    chat_id: msg.from.id,
+                    text: 'Your goals:',
+                    reply_markup: JSON.stringify({
+                        inline_keyboard: goals
+                    })
+                })
+            })
+    }
+}
