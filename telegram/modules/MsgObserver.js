@@ -254,23 +254,24 @@ function MsgObserver(){
             } else {
                 ret = opt
             }
+            if (ret.skip_logging !== true) {
+                logger.info(ret)
+            }
+            if (typeof ret !== 'string' && currentUser && typeof currentUser !== 'undefined') {
+                ret.user_id = currentUser.id || null
+            }
+    
+            if (ret !== ''){
+                MakeRequest('sendMessage', ret)
+                .then(() => {
+                    logger.info(`\r\nОтправка сообщения от ${msg.from.username}\r\nPOST ${TGAPI}/sendMessage\r\nBody: ${JSON.stringify(opt, '', 4)}\r\n`)
+                })
+            }
         } else {
             logger.error('Error: action не найден:', msg.text || msg.data || msg.callback_data)
             ret = {text: ''}
         }
     
-        if (ret.skip_logging !== true) {
-            logger.info(ret)
-        }
-        if (typeof ret !== 'string' && currentUser && typeof currentUser !== 'undefined') {
-            ret.user_id = currentUser.id || null
-        }
-
-        MakeRequest('sendMessage', ret)
-            .then(() => {
-                logger.info(`\r\nОтправка сообщения от ${msg.from.username}\r\nPOST ${TGAPI}/sendMessage\r\nBody: ${JSON.stringify(opt, '', 4)}\r\n`)
-            })
-
         return ret
     }
     
