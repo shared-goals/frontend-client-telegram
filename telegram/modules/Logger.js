@@ -1,12 +1,17 @@
 'use strict'
 
+let logger = new Logger
+
+let logErrors = require('../globals').logErrors
+logErrors ? logger.enable() : logger.disable()
+
 /**
  * Класс логгера
  * @constructor
  */
 function Logger () {
     let self = this
-    let logErrors = false
+
     function info (msg) {
         if (logErrors === true) {
             console.log(msg)
@@ -30,7 +35,5 @@ function Logger () {
     self.info = info
     self.error = error
 }
-
-let logger = (new Logger).enable()
 
 module.exports.logger = logger

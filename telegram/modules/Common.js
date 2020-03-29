@@ -5,8 +5,8 @@ const request = require('request-promise');
 
 let logger = require('./Logger').logger
 let updateCounter = require('../globals').updateCounter
-let currentUser = require('../globals').currentUser
-let TGAPI = `https://api.telegram.org/bot${process.env.BOT_TOKEN}`
+let currentUser = require('./User').currentUser
+let TGAPI = require('../globals').TGAPI
 let SGAPI = `http://127.0.0.1:3030`
 
 
@@ -21,7 +21,7 @@ function MakeRequest(method, args = {}) {
             method: args.method || 'POST',
             url: `${address}/${method}`,
             form: args,
-            user_id: currentUser ? currentUser.id : 0
+            user_id: currentUser ? currentUser.getId() : 0
         }
         if (args.external) {
             logger.info(opt)

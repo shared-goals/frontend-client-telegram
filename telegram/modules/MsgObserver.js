@@ -9,8 +9,9 @@ const path = require('path')
 let logger = require('./Logger').logger
 let MakeRequest = require('./Common').MakeRequest
 let msgActions = require('./MsgActions').msgActions
-let currentUser = require('../globals').currentUser
+let currentUser = require('./User').currentUser
 let updateCounter = require('../globals').updateCounter
+let TGAPI = require('../globals').TGAPI
 
 const port = process.env.PORT       // Порт на котором поднимается сервер обработки хуков
 const transportType = 'webhook'     // Тип транспорта сообщений: polling|webhook
@@ -135,9 +136,6 @@ function MsgObserver(){
                 }
                 response.statusCode = 200;
                 let resp = await commonHandler(req.message || req.callback_query)
-                if (resp.skip_logging !== true) {
-                    logger.info(resp)
-                }
                 if (resp.hasOwnProperty('type')) {
                     response.setHeader('Content-Type', resp.type);
                     response.end(resp.text || '')
@@ -147,12 +145,8 @@ function MsgObserver(){
                         response.end(resp.text || resp.html || JSON.stringify(resp))
                     } else {
                         response.setHeader('Content-Type', 'application/json');
-                        if (currentUser) {
-                            resp.user_id = currentUser.id
-                        }
                         response.end(JSON.stringify(resp) || '')
                     }
-                MakeRequest('sendMessage', resp)
             })
         }
     
@@ -260,14 +254,23 @@ function MsgObserver(){
             } else {
                 ret = opt
             }
-            // makeRequest('sendMessage', opt)
-            //     .then(() => {
-            //         logger.info(`\r\nОтправка сообщения от ${msg.from.username}\r\nPOST ${TGAPI}/sendMessage\r\nBody: ${JSON.stringify(opt, '', 4)}\r\n`)
-            //     })
         } else {
             logger.error('Error: action не найден:', msg.text || msg.data || msg.callback_data)
             ret = {text: ''}
         }
+    
+        if (ret.skip_logging !== true) {
+            logger.info(ret)
+        }
+        if (typeof ret !== 'string' && currentUser && typeof currentUser !== 'undefined') {
+            ret.user_id = currentUser.id || null
+        }
+
+        MakeRequest('sendMessage', ret)
+            .then(() => {
+                logger.info(`\r\nОтправка сообщения от ${msg.from.username}\r\nPOST ${TGAPI}/sendMessage\r\nBody: ${JSON.stringify(opt, '', 4)}\r\n`)
+            })
+
         return ret
     }
     

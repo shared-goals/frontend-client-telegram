@@ -2,7 +2,7 @@
 
 require('dotenv').config()
 
-let currentUser = require('./globals').currentUser
+let currentUser = require('./modules/User').currentUser
 let msgActions = require('./modules/MsgActions').msgActions
 let msgObserver = require('./modules/MsgObserver').msgObserver
 let MakeRequest = require('./modules/Common').MakeRequest
@@ -16,19 +16,19 @@ async function startHandler (msg) {
         external: true,
         method: 'GET'
     }
-    // makeRequest('sendMessage', {
-    //     chat_id: msg.from.id,
-    //     text: 'Getting user data...'
-    // })
+    MakeRequest('sendMessage', {
+        chat_id: msg.from.id,
+        text: 'Getting user data...'
+    })
     return await MakeRequest('users/email/' + (msg.from.username || msg.from.id) + '@t.me', opt)
         .then(async function (response) {
             let ret, action
-            currentUser = response
+            currentUser.set(response)
             if (!response.hasOwnProperty('id')) {
-                // makeRequest('sendMessage', {
-                //     chat_id: msg.from.id,
-                //     text: 'Registering user...'
-                // })
+                MakeRequest('sendMessage', {
+                    chat_id: msg.from.id,
+                    text: 'Registering user...'
+                })
                 let opt = {
                     chat_id: msg.from.id,
                     external: true,
@@ -38,11 +38,11 @@ async function startHandler (msg) {
                 }
                 ret = await MakeRequest('register', opt)
                     .then((response) => {
-                        currentUser = response
-                        // makeRequest('sendMessage', {
-                        //     chat_id: msg.from.id,
-                        //     text: 'User ' + msg.from.username + ' registered...'
-                        // })
+                        currentUser.set(response)
+                        MakeRequest('sendMessage', {
+                            chat_id: msg.from.id,
+                            text: 'User ' + msg.from.username + ' registered...'
+                        })
                         action = msgActions.get('welcome')
                         action.chat_id = msg.from.id
                         // makeRequest('sendMessage', action)
