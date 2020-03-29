@@ -1,4 +1,5 @@
 const Koa = require('koa')
+const https = require('https')
 const bodyParser = require('koa-bodyparser')
 const Router = require('koa-router')
 const Mongoose = require('mongoose')
@@ -35,6 +36,17 @@ const mongooseOptions = {
     ssl: true,
     sslCA: fs.readFileSync('/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt')
 };
+
+// const config = {
+//     domain: 'ewg.ru.com', // your domain
+//     https: {
+//         port: 443, // any port that is open and not already used on your server
+//         options: {
+//             key: fs.readFileSync(path.resolve(process.cwd(), 'certs/privkey.pem'), 'utf8').toString(),
+//             cert: fs.readFileSync(path.resolve(process.cwd(), 'certs/fullchain.pem'), 'utf8').toString(),
+//         },
+//     },
+// };
 
 // Connect to the MongoDB database
 Mongoose.connect(url, mongooseOptions)
