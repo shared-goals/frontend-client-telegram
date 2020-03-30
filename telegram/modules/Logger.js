@@ -1,9 +1,9 @@
 'use strict'
 
 let logger = new Logger
-
 let logErrors = require('../globals').logErrors
 logErrors ? logger.enable() : logger.disable()
+
 
 /**
  * Класс логгера
