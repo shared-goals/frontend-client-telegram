@@ -1,7 +1,11 @@
 'use strict'
 
 let msgObserver = require('./modules/MsgObserver').msgObserver
-require('./init.js')
+
+require('./actions/start')
+require('./actions/settings')
+require('./actions/goals')
+require('./actions/nohooks')
 
 // назначаем кастомные слушатели и запускаем
 msgObserver
