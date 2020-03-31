@@ -26,6 +26,8 @@ function User () {
     }
 }
 
-let currentUser = new User
+console.log('🔸️  User model initiated')
+
+let currentUser = new User()
 
 module.exports.currentUser = currentUser

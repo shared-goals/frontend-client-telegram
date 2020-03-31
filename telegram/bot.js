@@ -1,13 +1,19 @@
 'use strict'
 
-let msgObserver = require('./modules/MsgObserver').msgObserver
+let session = require('./models/Session')
+let observer = require('./modules/Observer').observer
 
-require('./actions/start')
-require('./actions/settings')
-require('./actions/goals')
-require('./actions/nohooks')
+// Подключаем инициализации сценариев
+require('./scenes/start')
+require('./scenes/settings')
+require('./scenes/goals')
+require('./scenes/nohooks')
 
-// назначаем кастомные слушатели и запускаем
-msgObserver
-    .init()
-    .start()
+// получаем и сохраняем в сессии с сервера Telegram информацию о боте
+;session.currentSession.getInfo().then(() => {
+
+    // назначаем кастомные слушатели и запускаем
+    observer
+        .init()
+        .start()
+})

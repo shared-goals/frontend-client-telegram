@@ -7,13 +7,11 @@ const fs = require('fs')
 const path = require('path')
 
 let logger = require('./Logger').logger
-let MakeRequest = require('./Common').MakeRequest
-let msgActions = require('./MsgActions').msgActions
-let currentUser = require('./User').currentUser
-let updateCounter = require('../globals').updateCounter
-let TGAPI = require('../globals').TGAPI
+let MakeRequest = require('./Request').MakeRequest
+let scenes = require('./Scenes')
+let session = require('../models/Session')
+let defaults = require('../globals')
 
-const port = process.env.PORT       // Порт на котором поднимается сервер обработки хуков
 const transportType = 'webhook'     // Тип транспорта сообщений: polling|webhook
 const doReport = false              // Логировать ли количества сообщения в лог
 
@@ -38,7 +36,7 @@ $ yc serverless function version create \
  
  * @constructor
  **/
-function MsgObserver(){
+function Observer(){
     let self = this
     
     let listeners = []              // Массив обработчиков
@@ -46,11 +44,12 @@ function MsgObserver(){
         observe: 1000,              // ... наблюдения за командами от Telegram
         report: 60000               // ... логирования сообщений
     }
+    let nextCallback = null         // Приоритетный слушатель для следующего колла
     
     /**
      * Метод добавляет слушатель / обработчик команд
      * @param func
-     * @returns {MsgObserver}
+     * @returns {Observer}
      */
     function subscribe (func) {
         listeners.push(func)
@@ -60,7 +59,7 @@ function MsgObserver(){
     /**
      * Метод запускает конкретный слушатель / обработчик команд
      * @param data
-     * @returns {MsgObserver}
+     * @returns {Observer}
      */
     function triggered (data) {
         listeners.forEach((func) => {
@@ -70,12 +69,23 @@ function MsgObserver(){
     }
     
     /**
+     * Метод устанавливает приоритетного слушателя для следующего введенного сообщения
+     * @param data
+     * @returns {Observer}
+     */
+    function setNextCallback (callback) {
+        console.log('setNextCB', callback)
+        nextCallback = callback || concole.error
+        return self
+    }
+    
+    /**
      * Обрабатывает поступившее от сервера Telegram сообщение
      * @param item Объект сообщения
      */
     async function handleMessage (item) {
         let msg = item.message || item.callback_query
-        let log = `\r\nНовое сообщение от ${msg.from.username}\r\nPOST ${TGAPI}/getUpdates\r\n`
+        let log = `\r\nНовое сообщение от ${msg.from.username}\r\nPOST ${defauts.TGAPI}/getUpdates\r\n`
         
         if (item.update_id > lastUpdate) {
             lastUpdate = item.update_id
@@ -134,8 +144,37 @@ function MsgObserver(){
                         }
                     }
                 }
+    
+                let msg
+                let prev_msg_id = session.currentSession.get().prev_message_id
+                let last_msg_id = session.currentSession.get().last_message_id
+
+                // переписываем последний message_id в предпоследний
+                if (prev_msg_id !== last_msg_id) {
+                    session.currentSession.set({prev_message_id: last_msg_id})
+                }
+
+                // Если это коллбэк после нажатия кнопки
+                if (req.hasOwnProperty('callback_query')) {
+                    session.currentSession.set({last_message_id: req.callback_query.message.message_id})
+                    msg = req.callback_query.data || req.callback_query.message
+                } else {
+                    session.currentSession.set({last_message_id: req.message.message_id})
+                    msg = req.message
+                }
+                if (typeof msg === 'string') {
+                    msg = {text: msg}
+                }
+                if (session.currentSession.getChat() === null && msg.hasOwnProperty('chat')) {
+                    session.currentSession.set({chat: msg.chat})
+                }
+
+                // console.log(req)
+                console.log('prev', session.currentSession.get().prev_message_id)
+                console.log('last', session.currentSession.get().last_message_id)
+
                 response.statusCode = 200;
-                let resp = await commonHandler(req.message || req.callback_query)
+                let resp = await commonHandler(msg)
                 if (resp.hasOwnProperty('type')) {
                     response.setHeader('Content-Type', resp.type);
                     response.end(resp.text || '')
@@ -150,11 +189,11 @@ function MsgObserver(){
             })
         }
     
-        if (port === 443) {
+        if (defaults.port === 443) {
             const config = {
                 domain: 'ewg.ru.com',
                 https: {
-                    port: port, // any port that is open and not already used on your server
+                    port: defaults.port, // any port that is open and not already used on your server
                     options: {
                         key: fs.readFileSync(path.resolve(process.cwd(), '../certs/certificate.key'), 'utf8').
                             toString(),
@@ -164,21 +203,21 @@ function MsgObserver(){
                 },
             }
             self.server = https.createServer(config.https.options, requestHandler)
-            self.server.listen(port, (err) => {
+            self.server.listen(defaults.port, (err) => {
                 if (err) {
                     return logger.info('something bad happened', err)
                 }
-                logger.info(`server is listening on ${port}`)
             })
         } else {
             self.server = http.createServer(requestHandler)
-            self.server.listen(port, (err) => {
+            self.server.listen(defaults.port, (err) => {
                 if (err) {
                     return logger.info('something bad happened', err)
                 }
-                logger.info(`server is listening on ${port}`)
             })
         }
+    
+        logger.info('Включен режим webhook-ов, создан обработчик запросов от серверов Telegram')
     }
     
     /**
@@ -188,27 +227,31 @@ function MsgObserver(){
         setInterval(function () {
             if (!inProgressUpdate) {
                 inProgressUpdate = true
-                makeRequest('getUpdates', {offset: lastUpdate + 1})
-                .then( (data) => {
-                    if (data.ok !== false ) {
-                        data.result.forEach( (item) => {
-                            msgCounter += 1
-                            handleMessage(item)
-                        })
-                    } else {
-                        logger.error(data.error_code || '', data.description)
-                    }
-                    inProgressUpdate = false
-                })
+                MakeRequest('getUpdates', {offset: lastUpdate + 1})
+                    .then( (data) => {
+                        if (data.ok !== false ) {
+                            data.result.forEach( (item) => {
+                                msgCounter += 1
+                                handleMessage(item)
+                            })
+                        } else {
+                            logger.error(data.error_code || '', data.description)
+                        }
+                        inProgressUpdate = false
+                    })
             }
         }, timeouts.observe, self)
+    
+        logger.info('Включен режим опроса, демон опрашивает сервера Telegram на наличие обновлений для бота')
     }
     
     /**
      * Метод запускает наблюдение за сообщениями
-     * @returns {MsgObserver}
+     * @returns {Observer}
      */
     function start () {
+        logger.info(new Date(),
+            'Бот '+ session.currentSession.getBot().username + ` стартовал на ${defaults.host}:${defaults.port}`)
         if (transportType === 'polling') {
             startPollingObserver()
         } else if (transportType === 'webhook') {
@@ -221,15 +264,16 @@ function MsgObserver(){
     
     /**
      * Инициализация наблюдателя
-     * @returns {MsgObserver}
+     * @returns {Observer}
      */
     function init () {
         // Если в настройках задан репортинг в лог - запускаем его
         if (doReport === true) {
             setInterval(function () {
-                logger.info(`\r\nЗа 1min отправлено ${updateCounter} POST запросов на Telegram API getUpdates.\r\nОбработано ${msgCounter} сообщений\r\n`)
+                logger.info(`\r\nЗа 1min отправлено ${defaults.updateCounter} `
+                    + `POST запросов на Telegram API getUpdates.\r\nОбработано ${msgCounter} сообщений\r\n`)
                 msgCounter = 0
-                updateCounter = 0
+                defaults.updateCounter = 0
             }, timeouts.report)
         }
         
@@ -244,28 +288,46 @@ function MsgObserver(){
      * @returns {Promise.<*>}
      */
     async function commonHandler (msg) {
-        let ret = null
-
-        let opt = msgActions.get(msg.data || msg.callback_data || msg.text.replace(/^\//, ''))
+        let ret = null, opt
+        
+        // Если был определен приоритетный следующий обработчик
+        if (typeof nextCallback !== null) {
+            // ... и если он был определен как функция - выполняем ее, фиксируем ответ, чистим
+            if (typeof nextCallback === 'function') {
+                ret = nextCallback.call(self, msg)
+                nextCallback = null
+            // ... или если он был определен как строка - сохраняем ее для выполнени обычным алгоритмом, чистим
+            } else if (typeof nextCallback === 'string') {
+                msg.data = nextCallback
+                nextCallback = null
+            }
+        }
+        opt = scenes.all.get(msg.data || msg.callback_data || msg.text.replace(/^\//, ''))
+        
         if (typeof opt !== 'undefined') {
-            opt.chat_id = msg.from.id
             if (opt.hasOwnProperty('callback_data')) {
-                ret = await opt.callback_data(msg)
+                if (typeof opt.callback_data === 'function') {
+                    ret = await opt.callback_data(msg)
+                }
             } else {
                 ret = opt
             }
-            if (ret.skip_logging !== true) {
-                logger.info(ret)
-            }
-            if (typeof ret !== 'string' && currentUser && typeof currentUser !== 'undefined') {
-                ret.user_id = currentUser.id || null
-            }
-    
-            if (ret !== ''){
-                MakeRequest('sendMessage', ret)
-                .then(() => {
-                    logger.info(`\r\nОтправка сообщения от ${msg.from.username}\r\nPOST ${TGAPI}/sendMessage\r\nBody: ${JSON.stringify(opt, '', 4)}\r\n`)
-                })
+            if (ret && typeof ret !== 'undefined') {
+                if (ret.skip_logging !== true) {
+                    logger.info(ret)
+                }
+                if (ret !== '' && ret.hasOwnProperty('text') && ret.text !== ''){
+                    MakeRequest('sendMessage', ret)
+                        .then(() => {
+                            let chat = session.currentSession.getChat()
+                            logger.info(`\r\nОтправка сообщения от ${chat.username}\r\n`
+                                + `POST ${defaults.TGAPI}/sendMessage\r\nBody: ${JSON.stringify(ret, '', 4)}\r\n`)
+                        })
+                } else {
+                    logger.error('Отсутствует текст')
+                }
+            } else {
+                ret = {text: ''}
             }
         } else {
             logger.error('Error: action не найден:', msg.text || msg.data || msg.callback_data)
@@ -275,15 +337,16 @@ function MsgObserver(){
         return ret
     }
     
-    logger.info('Включен режим опроса, демон опрашивает сервера Telegram на наличие обновлений для бота')
-    
     self.subscribe = subscribe
     self.triggered = triggered
     self.commonHandler = commonHandler
     self.init = init
     self.start = start
+    self.setNextCallback = setNextCallback
 }
 
-let msgObserver = new MsgObserver()
+let observer = new Observer()
 
-module.exports.msgObserver = msgObserver
+console.log('🔹️  Observer module initiated')
+
+module.exports.observer = observer

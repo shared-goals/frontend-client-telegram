@@ -2,44 +2,44 @@
 
 require('dotenv').config()
 
-let msgActions = require('../modules/MsgActions').msgActions
+let scenes = require('../modules/Scenes')
 
 
 // Settings from subs to parent
-msgActions.set({
+scenes.all.set({
     id: 'changeLanguage',
     key: `🇷🇺 Change language`,
     text: `🇷🇺 Change language`,
     callback_data:'chLang'
 })
 
-msgActions.set({
+scenes.all.set({
     id: 'chLang',
     key: `🇷🇺 Select language`,
     text: `🇷🇺 Select language`,
-    reply_markup: JSON.stringify({
+    reply_markup: {
         inline_keyboard: [
             [
                 {text: `🇬🇧 English`, callback_data:'en'},
                 {text: `🇷🇺 Русский`, callback_data:'ru'}
             ], [
-                {text: `⬅️ Back`, callback_data:'welcome'}
+                {id: 'welcome', text: `⬅️ Back`}
             ]
         ]
-    })
+    }
 })
 
-msgActions.set({
+scenes.all.set({
     id: 'settings',
     key: '🛠 Settings',
     text: 'Select Settings below',
-    reply_markup: JSON.stringify({
+    reply_markup: {
         inline_keyboard: [
             [
-                msgActions.get('changeLanguage')
+                {id: 'changeLanguage'}
             ], [
-                {text: `⬅️ Back`, callback_data:'welcome'}
+                {id: 'welcome', text: `⬅️ Back`}
             ]
         ]
-    })
+    }
 })

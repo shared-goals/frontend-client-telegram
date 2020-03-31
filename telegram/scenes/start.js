@@ -2,9 +2,9 @@
 
 require('dotenv').config()
 
-let currentUser = require('../modules/User').currentUser
-let msgActions = require('../modules/MsgActions').msgActions
-let MakeRequest = require('../modules/Common').MakeRequest
+let session = require('../models/Session')
+let scenes = require('../modules/Scenes')
+let MakeRequest = require('../modules/Request').MakeRequest
 
 
 /**
@@ -12,25 +12,21 @@ let MakeRequest = require('../modules/Common').MakeRequest
  */
 async function startHandler (msg) {
     let opt = {
-        chat_id: msg.from.id,
         external: true,
         method: 'GET'
     }
     MakeRequest('sendMessage', {
-        chat_id: msg.from.id,
         text: 'Getting user data...'
     })
     return await MakeRequest('users/email/' + (msg.from.username || msg.from.id) + '@t.me', opt)
         .then(async function (response) {
-            let ret, action
-            currentUser.set(response)
+            let ret
+            session.currentSession.setUser(response)
             if (!response.hasOwnProperty('id')) {
                 MakeRequest('sendMessage', {
-                    chat_id: msg.from.id,
                     text: 'Registering user...'
                 })
                 let opt = {
-                    chat_id: msg.from.id,
                     external: true,
                     method: 'POST',
                     email: msg.from.username + '@t.me',
@@ -38,44 +34,37 @@ async function startHandler (msg) {
                 }
                 ret = await MakeRequest('register', opt)
                     .then((response) => {
-                        currentUser.set(response)
+                        session.currentSession.setUser(response)
                         MakeRequest('sendMessage', {
-                            chat_id: msg.from.id,
                             text: 'User ' + msg.from.username + ' registered...'
                         })
-                        action = msgActions.get('welcome')
-                        action.chat_id = msg.from.id
-                        // makeRequest('sendMessage', action)
-                        return action
+                        return scenes.all.get('welcome')
                     })
             } else {
-                action = msgActions.get('welcome')
-                action.chat_id = msg.from.id
-                // makeRequest('sendMessage', action)
-                ret = action
+                ret = scenes.all.get('welcome')
             }
             return ret
         })
 }
 
 // назначаем интерфейнсные скрины / кнопки
-msgActions.set({
+scenes.all.set({
     id: 'start',
     key: 'start',
     callback_data: startHandler
 })
 
-msgActions.set({
+scenes.all.set({
     id: 'welcome',
     key: 'welcome',
     text: 'Welcome to SharedGoals service.',
-    reply_markup: JSON.stringify({
+    reply_markup: {
         keyboard: [
             [
-                {text: `🧰 Goals`, callback_data: 'goals'},
-                {text: `🛠 Settings`}
+                {id: 'goals', use: 'key'},
+                {id: 'settings', use: 'key'}
             ]
         ],
         resize_keyboard: true
-    })
+    }
 })

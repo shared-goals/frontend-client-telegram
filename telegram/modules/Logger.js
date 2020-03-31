@@ -1,8 +1,8 @@
 'use strict'
 
 let logger = new Logger
-let logErrors = require('../globals').logErrors
-logErrors ? logger.enable() : logger.disable()
+let defaults = require('../globals')
+defaults.logErrors ? logger.enable() : logger.disable()
 
 
 /**
@@ -12,22 +12,24 @@ logErrors ? logger.enable() : logger.disable()
 function Logger () {
     let self = this
 
-    function info (msg) {
-        if (logErrors === true) {
-            console.log(msg)
+    function info () {
+        if (defaults.logErrors === true) {
+            let args = Array.prototype.slice.call(arguments)
+            console.log.apply(console, args)
         }
     }
     function error (msg) {
-        if (logErrors === true) {
-            console.error(msg)
+        if (defaults.logErrors === true) {
+            let args = Array.prototype.slice.call(arguments)
+            console.error.apply(console, args)
         }
     }
     function enable () {
-        logErrors = true
+        defaults.logErrors = true
         return self
     }
     function disable () {
-        logErrors = false
+        defaults.logErrors = false
         return self
     }
     self.enable = enable
@@ -35,5 +37,7 @@ function Logger () {
     self.info = info
     self.error = error
 }
+
+console.log('🔹️  Logger module initiated')
 
 module.exports.logger = logger

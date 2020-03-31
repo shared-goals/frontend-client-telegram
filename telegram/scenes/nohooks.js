@@ -2,11 +2,11 @@
 
 require('dotenv').config()
 
-let msgActions = require('../modules/MsgActions').msgActions
+let scenes = require('../modules/Scenes')
 
 
 // Not hooks
-msgActions.set({
+scenes.all.set({
     id: '',
     key: '',
     hook: false,
@@ -14,7 +14,7 @@ msgActions.set({
     text: '<!doctype html>\n<html><head><meta charset="utf-8"></head><body><script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>Hello at ewg.ru.com.</body></html>'
 })
 
-msgActions.set({
+scenes.all.set({
     id: 'favicon.ico',
     key: 'favicon.ico',
     type: 'image/x-icon',
