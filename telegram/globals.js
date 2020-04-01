@@ -7,7 +7,7 @@ module.exports = {
     host: `${process.env.HOST}`,
     port: `${process.env.PORT}`,
     updateCounter: 0,
-    log: false,
+    log: true,
     icons: {
         check: {
             empty: '⭕ ',

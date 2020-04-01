@@ -140,7 +140,7 @@ scenes.all.set({
 scenes.all.set({
     id: 'goals',
     key: i18n.t('scenes.goals.button_text'),
-    text: 'Выберите с чем Вы хотели бы работать',//i18n.t('scenes.goals.welcome_text'),
+    text: i18n.t('scenes.goals.welcome_text'),
     reply_markup: {
         inline_keyboard: [
             [

@@ -2,6 +2,7 @@
 
 require('dotenv').config()
 
+let controller = require('../controllers/settings')
 let scenes = require('../modules/Scenes')
 let i18n = require('../modules/I18n')
 
@@ -11,11 +12,11 @@ scenes.all.set({
     id: 'changeLanguage',
     key: i18n.t('scenes.settings.change_language.button_text'),
     text: i18n.t('scenes.settings.change_language.welcome_text'),
-    callback_data: 'chLang'
+    callback_data: controller.changeLanguage
 })
 
 scenes.all.set({
-    id: 'chLang',
+    id: 'changeLanguageMenu',
     key: i18n.t('scenes.settings.select_language.button_text'),
     text: i18n.t('scenes.settings.select_language.welcome_text'),
     reply_markup: {
@@ -24,7 +25,7 @@ scenes.all.set({
                 {text: `🇬🇧 English`, callback_data:'en'},
                 {text: `🇷🇺 Русский`, callback_data:'ru'}
             ], [
-                {id: 'welcome', text: i18n.t('scenes.settings.select_language.back.button_text')},
+                {id: 'settings', text: i18n.t('scenes.settings.select_language.back.button_text')},
                 {id: 'welcome', text: i18n.t('scenes.back.button_text')}
             ]
         ]

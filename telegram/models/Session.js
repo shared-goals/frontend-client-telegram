@@ -84,6 +84,7 @@ function Session () {
      * @returns {Promise.<TResult>}
      */
     self.checkUser = async(msg) => {
+        console.log(msg, self.getChat())
         msg = self.getChat() || msg
         
         // Смотрим текущий хэш в сессии

@@ -150,16 +150,16 @@ function Observer(){
                 // Проверяем пользователя сессии, если не определен - логиним, регистрируем и т.д.
                 await session.currentSession.checkUser(msg)
     
-                // logger.info(req)
+                logger.info(req)
                 // logger.info('prev', session.currentSession.get().prev_message_id)
                 // logger.info('last', session.currentSession.get().last_message_id)
-
-                // Запускаем асинхронный обработчик пришедшего сообщения, получаем ответ
-                resp = await self.commonHandler(msg)
     
                 // Ставим успешное выполнение
                 response.statusCode = 200
-
+    
+                // Запускаем асинхронный обработчик пришедшего сообщения, получаем ответ
+                resp = await self.commonHandler(msg)
+    
                 // Если в ответе присутствует какой-то конкретный Content-Type - устанавливаем его
                 if (resp.hasOwnProperty('type')) {
                     response.setHeader('Content-Type', resp.type)
