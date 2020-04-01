@@ -1,44 +1,32 @@
 'use strict'
 
+let logger = require('../modules/Logger').logger
+
+
 /**
  * Класс цели
  * @constructor
  */
 function Contract () {
+    let self = this
+
     this.attributes = {
         id: null,
         goal_id: null,
-        occupation: {
-            every: null,
-            weekdays: {
-                monday: false,
-                tuesday: false,
-                wednesday: false,
-                thursday: false,
-                friday: false,
-                saturday: false,
-                sunday: false
-            },
-        }
+        occupation: null
     }
     
     this.set = (data) => {
         Object.assign(this.attributes, data)
         return self
     }
-
-    this.get = () => {
-        return this.attributes
-    }
     
-    this.getId = () => {
-        'use strict'
-        
-        return this.attributes.id
+    this.get = (key) => {
+        return key && typeof key !== 'undefined' ? this.attributes[key] : this.attributes
     }
 }
 
-console.log('🔸️  Contract model initiated')
+logger.info('🔸️  Contract model initiated')
 
 module.exports.Contract = Contract
 

@@ -2,7 +2,7 @@
 
 let logger = new Logger
 let defaults = require('../globals')
-defaults.logErrors ? logger.enable() : logger.disable()
+defaults.log ? logger.enable() : logger.disable()
 
 
 /**
@@ -13,23 +13,23 @@ function Logger () {
     let self = this
 
     function info () {
-        if (defaults.logErrors === true) {
+        if (defaults.log === true) {
             let args = Array.prototype.slice.call(arguments)
             console.log.apply(console, args)
         }
     }
     function error (msg) {
-        if (defaults.logErrors === true) {
+        if (defaults.log === true) {
             let args = Array.prototype.slice.call(arguments)
             console.error.apply(console, args)
         }
     }
     function enable () {
-        defaults.logErrors = true
+        defaults.log = true
         return self
     }
     function disable () {
-        defaults.logErrors = false
+        defaults.log = false
         return self
     }
     self.enable = enable
@@ -38,6 +38,6 @@ function Logger () {
     self.error = error
 }
 
-console.log('🔹️  Logger module initiated')
+logger.info('🔹️  Logger module initiated')
 
 module.exports.logger = logger

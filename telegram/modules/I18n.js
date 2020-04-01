@@ -1,12 +1,9 @@
 'use strict'
 
 let session = require('../models/Session')
+let defaults = require('../globals')
+let logger = require('./Logger').logger
 let path = require('path')
-
-// i18n options
-const i18n = new I18n({
-    directory: path.resolve(__dirname, '../locales')
-})
 
 /**
  * Класс локализатора
@@ -18,22 +15,35 @@ function I18n (opts) {
     self.attributes = {}
     self.translations = {}
     
-    init(opts || {})
-    
-    function t (resourceKey) {
+    self.t = (resourceKey) => {
         return resourceKey
             .split('.')
             .reduce((acc, key) => acc && acc[key], self.translations)
     }
     
-    function init (data) {
-        self.attributes = Object.assign({}, self.attributes, data)
-        self.translations = require(self.attributes['directory'] + '/' + session.currentSession.getLang())
+    self.setTranslations = (lang) => {
+        self.translations = require(self.attributes['directory'] + '/' + (lang || self.attributes.lang || defaults.lang))
     }
     
-    self.t = t
+    self.setLang = (lang) => {
+        self.attributes.lang = lang
+        self.setTranslations(lang)
+    }
+    
+    self.init = (data) => {
+        self.attributes = Object.assign({}, self.attributes, data)
+        self.setTranslations()
+    }
+    
+    self.init(opts || {})
 }
 
-console.log('🔹️  I18n module initiated')
+// i18n options
+const i18n = new I18n({
+    directory: path.resolve(__dirname, '../locales'),
+    lang: defaults.lang
+})
+
+logger.info('🔹️  I18n module initiated')
 
 module.exports = i18n

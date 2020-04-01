@@ -35,11 +35,15 @@ async function MakeRequest(method, args = {}) {
         }
         if (session.currentSession) {
             if (session.currentSession.getChat()) {
-                args.chat_id = session.currentSession.getChat().id
+                args.chat_id = session.currentSession.getChat().chat.id
             }
             if (session.currentSession.getUser()) {
                 args.user_id = session.currentSession.getUser().getId()
             }
+        }
+        args.parse_mode = 'MarkdownV2'
+        if (args.text && typeof args.text !== 'undefined') {
+            args.text = args.text.replace(/([\|.()])/g, '\\$1')
         }
         let opt = {
             chat_id: args.chat_id,
@@ -47,9 +51,17 @@ async function MakeRequest(method, args = {}) {
             url: `${address}/${method}`,
             form: args
         }
-        if (args.external) {
-            logger.info(opt)
+        if (args.external === true && typeof session.currentSession.get().hash !== 'undefined') {
+            opt.headers = {
+                'Authorization': 'Bearer ' + session.currentSession.get().hash
+            }
+            opt.rejectUnauthorized = false
         }
+
+        let chat = session.currentSession.getChat() || {chat: {username: 'unknown yet...'}}
+        logger.info('='.repeat(80) + `\r\nОтправка сообщения от ${chat.chat.username}\r\n`
+            + `POST ${defaults.TGAPI}/sendMessage\r\nBody: ${JSON.stringify(opt, '', 4)}` + '\r\n')
+
         request(opt, (error, response, body) => {
             if (!error) {
                 resolve(JSON.parse(body))
@@ -60,6 +72,6 @@ async function MakeRequest(method, args = {}) {
     })
 }
 
-console.log('🔹️  Request module initiated')
+logger.info('🔹️  Request module initiated')
 
 module.exports.MakeRequest = MakeRequest

@@ -1,5 +1,7 @@
 'use strict'
 
+let logger = require('../modules/Logger').logger
+
 
 /**
  * Класс текущего пользователя
@@ -8,15 +10,16 @@
 function User () {
     this.attributes = {
         id: null,
-        email: null
+        email: null,
+        telegram_id: null
     }
     
     this.set = (data) => {
         Object.assign(this.attributes, data)
     }
-
-    this.get = () => {
-        return this.attributes
+    
+    this.get = (key) => {
+        return key && typeof key !== 'undefined' ? this.attributes[key] : this.attributes
     }
     
     this.getId = () => {
@@ -26,7 +29,7 @@ function User () {
     }
 }
 
-console.log('🔸️  User model initiated')
+logger.info('🔸️  User model initiated')
 
 let currentUser = new User()
 

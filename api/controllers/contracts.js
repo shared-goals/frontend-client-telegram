@@ -257,7 +257,6 @@ let controller = {
      */
     list: async (ctx) => {
         const req = {};
-        console.log(111)
         if (ctx.query.owner_id) {
             try{
                 const user = await User.findById(ctx.query.owner_id).exec();
@@ -267,7 +266,6 @@ let controller = {
             }
         }
         if (ctx.user) req.owner = ctx.user._id;
-        console.log(req)
         const contracts = await Contract.find(req).populate('owner').exec();
         for(let i = 0; i < contracts.length; i++) {
             contracts[i] = contracts[i].toClient();

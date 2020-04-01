@@ -18,6 +18,13 @@ const doReport = false              // Логировать ли количес�
 let inProgressUpdate = false
 let lastUpdate = 0
 let msgCounter = 0
+let nextCallback = null             // Приоритетный слушатель для следующего колла
+
+let listeners = []                  // Массив обработчиков
+let timeouts = {                    // Таймауты
+    observe: 1000,                  // ... наблюдения за командами от Telegram
+    report: 60000                   // ... логирования сообщений
+}
 
 
 /**
@@ -39,19 +46,12 @@ $ yc serverless function version create \
 function Observer(){
     let self = this
     
-    let listeners = []              // Массив обработчиков
-    let timeouts = {                // Таймауты
-        observe: 1000,              // ... наблюдения за командами от Telegram
-        report: 60000               // ... логирования сообщений
-    }
-    let nextCallback = null         // Приоритетный слушатель для следующего колла
-    
     /**
      * Метод добавляет слушатель / обработчик команд
      * @param func
      * @returns {Observer}
      */
-    function subscribe (func) {
+    self.subscribe = (func) => {
         listeners.push(func)
         return self
     }
@@ -61,7 +61,7 @@ function Observer(){
      * @param data
      * @returns {Observer}
      */
-    function triggered (data) {
+    self.triggered = (data) => {
         listeners.forEach((func) => {
             func(data.message || data.callback_query)
         })
@@ -73,8 +73,7 @@ function Observer(){
      * @param data
      * @returns {Observer}
      */
-    function setNextCallback (callback) {
-        console.log('setNextCB', callback)
+    self.setNextCallback = (callback) => {
         nextCallback = callback || concole.error
         return self
     }
@@ -93,7 +92,7 @@ function Observer(){
         
         logger.info(msg.data ? `${log}inline кнопка: ${msg.data}\r\n` : `${log}Текст: ${msg.text}\r\n`)
         
-        return await triggered(item)
+        return await self.triggered(item)
     }
     
     /**
@@ -101,15 +100,17 @@ function Observer(){
      */
     function startWebHookObserver () {
         const requestHandler = (request, response) => {
-            let body = [], req = null, resp = null
+            let body = []
+
             request.on('error', (err) => {
-                logger.error(err);
-                
-                response.statusCode = 404;
+                logger.error(err)
+                response.statusCode = 404
             }).on('data', (chunk) => {
                 body.push(chunk)
-                response.statusCode = 404;
+                response.statusCode = 404
             }).on('end', async function () {
+                let msg, req = {}, resp
+
                 body = Buffer.concat(body).toString()
                 try {
                     req = JSON.parse(body)
@@ -119,41 +120,15 @@ function Observer(){
                     // logger.info('  body: "', body, '"')
                     // logger.info(e)
                 }
-                if (!req || req === '') {
-                    req = {
-                        "update_id": 603183293,
-                        "message": {
-                            "message_id": 740,
-                            "from": {
-                                "id": 131273512,
-                                "is_bot": false,
-                                "first_name": "Eugene",
-                                "last_name": "Kartavchenko",
-                                "username": "ewgeniyk",
-                                "language_code": "ru"
-                            },
-                            "chat": {
-                                "id": 131273512,
-                                "first_name": "Eugene",
-                                "last_name": "Kartavchenko",
-                                "username": "ewgeniyk",
-                                "type": "private"
-                            },
-                            "date": 1585399596,
-                            "text": request.url
-                        }
-                    }
-                }
-    
-                let msg
+                
                 let prev_msg_id = session.currentSession.get().prev_message_id
                 let last_msg_id = session.currentSession.get().last_message_id
-
+    
                 // переписываем последний message_id в предпоследний
                 if (prev_msg_id !== last_msg_id) {
                     session.currentSession.set({prev_message_id: last_msg_id})
                 }
-
+    
                 // Если это коллбэк после нажатия кнопки
                 if (req.hasOwnProperty('callback_query')) {
                     session.currentSession.set({last_message_id: req.callback_query.message.message_id})
@@ -162,33 +137,47 @@ function Observer(){
                     session.currentSession.set({last_message_id: req.message.message_id})
                     msg = req.message
                 }
+
                 if (typeof msg === 'string') {
                     msg = {text: msg}
                 }
+    
+                // Если в сессии еще нет информации о чате - фиксируем
                 if (session.currentSession.getChat() === null && msg.hasOwnProperty('chat')) {
-                    session.currentSession.set({chat: msg.chat})
+                    session.currentSession.set({chat: msg})
                 }
+    
+                // Проверяем пользователя сессии, если не определен - логиним, регистрируем и т.д.
+                await session.currentSession.checkUser(msg)
+    
+                // logger.info(req)
+                // logger.info('prev', session.currentSession.get().prev_message_id)
+                // logger.info('last', session.currentSession.get().last_message_id)
 
-                // console.log(req)
-                console.log('prev', session.currentSession.get().prev_message_id)
-                console.log('last', session.currentSession.get().last_message_id)
+                // Запускаем асинхронный обработчик пришедшего сообщения, получаем ответ
+                resp = await self.commonHandler(msg)
+    
+                // Ставим успешное выполнение
+                response.statusCode = 200
 
-                response.statusCode = 200;
-                let resp = await commonHandler(msg)
+                // Если в ответе присутствует какой-то конкретный Content-Type - устанавливаем его
                 if (resp.hasOwnProperty('type')) {
-                    response.setHeader('Content-Type', resp.type);
+                    response.setHeader('Content-Type', resp.type)
                     response.end(resp.text || '')
-                } else
+                } else {
+                    // Или выводим с Content-type-ом html если вернулся текст, иначе - json
                     if (typeof resp === 'string') {
-                        response.setHeader('Content-Type', 'text/html');
-                        response.end(resp.text || resp.html || JSON.stringify(resp))
+                        response.setHeader('Content-Type', 'text/html')
+                        response.end(resp)
                     } else {
-                        response.setHeader('Content-Type', 'application/json');
+                        response.setHeader('Content-Type', 'application/json')
                         response.end(JSON.stringify(resp) || '')
                     }
+                }
             })
         }
-    
+        
+        // Если в настройах указан HTTPS-порт - стартуем https-сервер
         if (defaults.port === 443) {
             const config = {
                 domain: 'ewg.ru.com',
@@ -205,14 +194,16 @@ function Observer(){
             self.server = https.createServer(config.https.options, requestHandler)
             self.server.listen(defaults.port, (err) => {
                 if (err) {
-                    return logger.info('something bad happened', err)
+                    return logger.error('something bad happened', err)
                 }
             })
+        
+        // Иначе поднимаем http-сервер на указанном порту
         } else {
             self.server = http.createServer(requestHandler)
             self.server.listen(defaults.port, (err) => {
                 if (err) {
-                    return logger.info('something bad happened', err)
+                    return logger.error('something bad happened', err)
                 }
             })
         }
@@ -224,6 +215,17 @@ function Observer(){
      * Стартуем веб-сервер, отправляющий запросы и обрабатывающий ответы от сервиса Telegram
      */
     function startPollingObserver () {
+        // Если в настройках задан репортинг в лог - запускаем его
+        if (doReport === true) {
+            setInterval(function () {
+                logger.info(`\r\nЗа 1min отправлено ${defaults.updateCounter} `
+                    + `POST запросов на Telegram API getUpdates.\r\nОбработано ${msgCounter} сообщений\r\n`)
+                msgCounter = 0
+                defaults.updateCounter = 0
+            }, timeouts.report)
+        }
+
+        // И запускаем интервальный опрашивающий коллбэк
         setInterval(function () {
             if (!inProgressUpdate) {
                 inProgressUpdate = true
@@ -249,7 +251,7 @@ function Observer(){
      * Метод запускает наблюдение за сообщениями
      * @returns {Observer}
      */
-    function start () {
+    self.start = () => {
         logger.info(new Date(),
             'Бот '+ session.currentSession.getBot().username + ` стартовал на ${defaults.host}:${defaults.port}`)
         if (transportType === 'polling') {
@@ -266,19 +268,9 @@ function Observer(){
      * Инициализация наблюдателя
      * @returns {Observer}
      */
-    function init () {
-        // Если в настройках задан репортинг в лог - запускаем его
-        if (doReport === true) {
-            setInterval(function () {
-                logger.info(`\r\nЗа 1min отправлено ${defaults.updateCounter} `
-                    + `POST запросов на Telegram API getUpdates.\r\nОбработано ${msgCounter} сообщений\r\n`)
-                msgCounter = 0
-                defaults.updateCounter = 0
-            }, timeouts.report)
-        }
-        
+    self.init = () => {
         // подписываем основной общий слушатель / обработчик команд
-        subscribe(commonHandler)
+        self.subscribe(self.commonHandler)
         return self
     }
     
@@ -287,7 +279,7 @@ function Observer(){
      * @param msg
      * @returns {Promise.<*>}
      */
-    async function commonHandler (msg) {
+    self.commonHandler = async(msg) => {
         let ret = null, opt
         
         // Если был определен приоритетный следующий обработчик
@@ -318,11 +310,6 @@ function Observer(){
                 }
                 if (ret !== '' && ret.hasOwnProperty('text') && ret.text !== ''){
                     MakeRequest('sendMessage', ret)
-                        .then(() => {
-                            let chat = session.currentSession.getChat()
-                            logger.info(`\r\nОтправка сообщения от ${chat.username}\r\n`
-                                + `POST ${defaults.TGAPI}/sendMessage\r\nBody: ${JSON.stringify(ret, '', 4)}\r\n`)
-                        })
                 } else {
                     logger.error('Отсутствует текст')
                 }
@@ -336,17 +323,10 @@ function Observer(){
     
         return ret
     }
-    
-    self.subscribe = subscribe
-    self.triggered = triggered
-    self.commonHandler = commonHandler
-    self.init = init
-    self.start = start
-    self.setNextCallback = setNextCallback
 }
 
 let observer = new Observer()
 
-console.log('🔹️  Observer module initiated')
+logger.info('🔹️  Observer module initiated')
 
 module.exports.observer = observer

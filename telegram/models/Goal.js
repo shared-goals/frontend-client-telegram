@@ -1,6 +1,7 @@
 'use strict'
 
 let Contract = require('./Contract').Contract
+let logger = require('../modules/Logger').logger
 
 
 /**
@@ -19,35 +20,34 @@ function Goal () {
         Object.assign(this.attributes, data)
     }
 
-    this.get = () => {
-        return this.attributes
+    this.get = (key) => {
+        return key && typeof key !== 'undefined' ? this.attributes[key] : this.attributes
     }
     
-    this.getId = () => {
-        'use strict'
-        
-        return this.get().id
-    }
-    
-    this.getTitle = () => {
-        'use strict'
-        
-        return this.get().title
+    this.toJSON = () => {
+        let obj = this.get()
+        if (obj.contract.hasOwnProperty('get')) {
+            obj.contract = obj.contract.get()
+        }
     }
     
     this.getContract = () => {
         'use strict'
         
-        return this.get().contract
+        return this.get('contract')
     }
 
     this.setContract = (data) => {
         'use strict'
-        
+        let currentContract = this.getContract()
+        if (!currentContract.hasOwnProperty('set')) {
+            this.set('contract', (new Contract()).set(currentContract))
+        }
+
         this.getContract().set(data)
     }
 }
 
-console.log('🔸️  Goal model initiated')
+logger.info('🔸️  Goal model initiated')
 
 module.exports.Goal = Goal

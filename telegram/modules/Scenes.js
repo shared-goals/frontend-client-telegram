@@ -1,8 +1,11 @@
 'use strict'
 
+let logger = require('./Logger').logger
+
 
 const sources = {}
 const idByKeyMap = {}
+const formsMessageIds = {}
 let list = {}
 
 /**
@@ -12,6 +15,10 @@ let list = {}
 function Scenes () {
     let self = this
     
+    /**
+     *
+     * @param action
+     */
     let set = (action) => {
         if (!action.hasOwnProperty('key') && action.hasOwnProperty('id')) {
             action.key = action.id
@@ -20,6 +27,12 @@ function Scenes () {
         sources[action.key] = action
         idByKeyMap[action.id] = action.key
     }
+    
+    /**
+     *
+     * @param key
+     * @returns {*}
+     */
     let get = (key) => {
         let ret = (typeof list[key] !== 'undefined' ? list[key] : list[idByKeyMap[key]])
         if (ret && ret.hasOwnProperty('reply_markup') && typeof ret.reply_markup === 'string') {
@@ -27,6 +40,13 @@ function Scenes () {
         }
         return ret
     }
+
+    /**
+     *
+     * @param key
+     * @param opts
+     * @returns {*}
+     */
     let getBrief = (key, opts) => {
         opts = opts || {}
         let item = get(key)
@@ -34,8 +54,31 @@ function Scenes () {
         let text = opts.hasOwnProperty('text') ? opts.text : item[txtField]
         return typeof item !== 'undefined' ? {text: text, callback_data: item.id} : {}
     }
+    
+    /**
+     *
+     * @param key
+     */
     let update = (key) => {
         list[key] = sources[key]
+    }
+    
+    /**
+     *
+     * @param key
+     * @param msgid
+     */
+    self.setMessageId = (key, msgid) => {
+        formsMessageIds[key] = msgid
+    }
+    
+    /**
+     *
+     * @param key
+     * @param msgid
+     */
+    self.getMessageId = (key) => {
+        return formsMessageIds[key]
     }
     
     self.set = set
@@ -46,7 +89,7 @@ function Scenes () {
 
 let scenes = new Scenes()
 
-console.log('🔹️  Scenes module initiated')
+logger.info('🔹️  Scenes module initiated')
 
 module.exports.all = scenes
 module.exports.sources = sources
