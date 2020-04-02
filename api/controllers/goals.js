@@ -1,5 +1,6 @@
 const Goal = require('../models/goal');
 const User = require('../models/user');
+const Contract = require('../models/contract');
 
 /**
  * @swagger
@@ -12,8 +13,10 @@ const User = require('../models/user');
  *           type: number
  *         title:
  *           type: string
- *         owner: 
+ *         owner:
  *           $ref: '#/components/schemas/User'
+ *         contract:
+ *           $ref: '#/components/schemas/Contract'
  *         text:
  *           type: string
  *         archived:
@@ -28,11 +31,16 @@ const User = require('../models/user');
  *           type: string
  *         owner:
  *           type: object
- *           properties: 
- *             id: 
+ *           properties:
+ *             id:
  *               type: number
- *           required: 
+ *           required:
  *             - id
+ *         contract:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: number
  *         text:
  *           type: string
  *         archived:
@@ -49,9 +57,11 @@ let controller = {
     getById: async(id, ctx, next) => {
         try{
             ctx.goal = await Goal.findById(id).populate('owner').exec();
+            // ctx.goal.contract = await Contract.find({goal: id}).populate('owner').populate('goal').exec();
             if(!ctx.goal) return ctx.status = 404;
             return next();
         } catch (err) {
+            console.error(err)
             ctx.status = 404;
         }
     },
@@ -132,6 +142,7 @@ let controller = {
      * 
      */
     read: async (ctx) => {
+        console.log('read')
         ctx.body = ctx.goal.toClient();
     },
     
@@ -310,6 +321,50 @@ let controller = {
     clear: async (ctx) => {
         await Goal.deleteMany().exec();
         ctx.status = 204;
+    },
+    
+    /**
+     * @swagger
+     *
+     * /goals/{goal_id}/contract/:
+     *   get:
+     *     summary: list contract owned by a given user depends to given goal
+     *     operationId: getGoalContract
+     *     tags:
+     *       - contracts
+     *     parameters:
+     *       - name: goal_id
+     *         in: path
+     *         required: true
+     *         description: the id of the goal
+     *         schema:
+     *           type: string
+     *     responses:
+     *       '200':
+     *         description: success
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Contract'
+     *       '404':
+     *         description: Goal not found
+     *
+     */
+    getContract: async (ctx) => {
+        const req = {};
+        ctx.query.goal_id = ctx.request.url.replace(/[^\d]/, '')
+        if (ctx.query.goal_id) {
+            try{
+                const goal = await Goal.findById(ctx.query.goal_id).exec();
+                req.goal = goal._id;
+            } catch (err) {
+                // console.error(err)
+                req.goal = null;
+            }
+        }
+        if (ctx.goal) req.goal = ctx.goal._id;
+        const contract = await Contract.find(req).populate('owner').populate('goal').exec();
+        ctx.body = contract.length > 0 ? contract[0].toClient() : {};
     }
 }
 

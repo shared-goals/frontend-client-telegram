@@ -3,6 +3,7 @@
 require('dotenv').config()
 
 let Goal = require('../models/Goal').Goal
+let Contract = require('../models/Contract').Contract
 let defaults = require('../globals')
 let logger = require('../modules/Logger').logger
 let scenes = require('../modules/Scenes')
@@ -12,9 +13,13 @@ let MakeRequest = require('../modules/Request').MakeRequest
 let i18n = require('../modules/I18n')
 
 let newGoal
+let newContract
 
 
 let controller = {
+    
+    mins_variants: ('m|min|mins|minutes|' + i18n.t('min_plur')).split('|'),
+    hours_variants: ('h|hour|hours|' + i18n.t('hour_plur')).split('|'),
     
     /**
      * Проверяет валидность введенной строки занятости:
@@ -26,7 +31,9 @@ let controller = {
      * @param txt
      */
     validateOccupationFormat: (txt) => {
-        let regStr = '^(\\d+)\\s*(m|h|mins?|minutes|hours?'
+        let regStr = '^(\\d+)\\s*('
+            + controller.mins_variants.join('|')
+            + '|' + controller.hours_variants.join('|')
             + '|' + i18n.t('min_plur') + '|' + i18n.t('hour_plur') + ')'
             + '\\s+(every|' + i18n.t('every_plur') + ')\\s+(('
             + 'day|' + i18n.t('day')
@@ -38,7 +45,65 @@ let controller = {
             + '|\\d+|\\d+,\\d+|,){1,13})$'
         // logger.info(regStr)
         let re = new RegExp(regStr, 'gi')
-        return re.exec(txt)
+        let data = re.exec(txt)
+        let ret
+        if (data !== null) {
+            ret = controller.parseOccupation(data.slice(1, 5))
+        } else {
+            ret = data
+        }
+        return ret
+    },
+    
+    /**
+     * Парсит исходный формат занятости и возвращает форматированный для хранения в БД
+     * @param data введенный формат занятости. Пример: Array ['20', 'min', 'every', 'mon,sat]
+     * @returns {{}}
+     */
+    parseOccupation: (data) => {
+        let ret = {
+            duration: null,
+            week_days: [],
+            month_days: []
+        }
+
+        if (controller.mins_variants.indexOf(data[1]) !== -1) {
+            ret.duration = data[0]
+        } else if (controller.hours_variants.indexOf(data[1]) !== -1) {
+            ret.duration = data[0] * 60
+        }
+        
+        let days = data[3].replace(/\s/, '').replace(/[;|]/, ',').split(',')
+        
+        let short_weekdays = defaults.weekdays.map((item) => item.substr(0, 3))
+        let local_weekdays = defaults.weekdays.map((item) => i18n.t(item))
+        
+        days.forEach((day) => {
+            if (day === 'day' || day === i18n.t('day')) {
+                ret.week_days = short_weekdays
+            } else if(day.match(/^\d+$/)) {
+                ret.month_days.push(parseInt(day, 10))
+            } else {
+                let idx = defaults.weekdays.indexOf(day) !== -1
+                    ? defaults.weekdays.indexOf(day)
+                    : (short_weekdays.indexOf(day) !== -1
+                        ? short_weekdays.indexOf(day)
+                        : (local_weekdays.indexOf(day) !== -1
+                            ? local_weekdays.indexOf(day)
+                            : null))
+                if (idx !== null) {
+                    ret.week_days.push(short_weekdays[idx])
+                }
+            }
+        })
+        return ret
+    },
+    
+    stringifyOccupation: (data) => {
+        return (data && data.hasOwnProperty('duration') && data.hasOwnProperty('duration') ?
+            ((data.duration >= 60 ? (data.duration / 60) + 'h' : data.duration + 'min')
+            + ' every ' + (data.week_days.length > 0 ? data.week_days.join(',') : data.month_days.join(',')))
+        : 'не определен')
     },
     
     /**
@@ -104,64 +169,84 @@ let controller = {
         let newMsg = await MakeRequest('sendMessage', {
             text: i18n.t('scenes.goals.list_all.fetching')
         })
-        let listGoalsMenuMessageId = newMsg.result.message_id
-        scenes.all.setMessageId('listGoals', listGoalsMenuMessageId)
-
-        let opt = {
-            external: true,
-            method: 'GET'
+        
+        let listGoalsMenuMessageId = null
+        try {
+            listGoalsMenuMessageId = newMsg.result.message_id
+        } catch (err) {
+            console.log(err)
         }
-        return await MakeRequest('goals', opt)
-            .then(async (response) => {
-                let markup = []
-                response.forEach((goal) => {
-                    markup.push([
-                        {
-                            text: goal.title,
-                            callback_data: 'goal_id_' + goal.id
-                        },
-                    ])
-                    scenes.all.set({
-                        id: 'goal_id_' + goal.id,
-                        key: '🛠 Goal ' + goal.id,
-                        text: `*` + goal.title + `*\`\`\`` + goal.text.replace(/-/g, '\\-') + `\`\`\``,
-                        reply_markup: {
-                            inline_keyboard: [
-                                [
-                                    {id: 'setcontract'},
-                                    {id: 'setcommit'}
-                                ],[
-                                    {id: 'listgoals', text: i18n.t('scenes.goals.view_goal.back.button_text')},
-                                ]
-                            ],
-                            resize_keyboard: true
-                        }
-                    })
-                })
-                markup.push([
-                    {id: 'welcome', text: i18n.t('scenes.back.button_text')}
-                ])
-                
-                await MakeRequest('editMessageText', {
-                    message_id: listGoalsMenuMessageId,
-                    text: i18n.t('scenes.goals.list_all.welcome_text')
-                })
+        if (listGoalsMenuMessageId !== null) {
+            scenes.all.setMessageId('listGoals', listGoalsMenuMessageId)
             
-                await MakeRequest('editMessageReplyMarkup', {
-                    message_id: listGoalsMenuMessageId,
-                    text: 'OK',
-                    reply_markup: {inline_keyboard: markup, resize_keyboard: true}
-                })
-            
-                return {text: ''}
-            
-                // return {
-                //     text: 'Your goals:',
-                //     reply_markup: {
-                //         inline_keyboard: markup
-                //     }
-                // }
+            return await MakeRequest('users/' + session.currentSession.getUser().getId() + '/goals', {
+                external: true,
+                method: 'GET'
             })
+                .then(async (response) => {
+                    let markup = []
+                    response.forEach(async(goal) => {
+                        goal.contract = await MakeRequest(`goals/${goal.id}/contract`, {
+                            external: true,
+                            method: 'GET'
+                        }).then((response) => {
+                            response.string = controller.stringifyOccupation(response)
+                            return response
+                        })
+                        console.log(JSON.stringify(goal))
+                        markup.push([
+                            {
+                                text: goal.title,
+                                callback_data: 'goal_id_' + goal.id
+                            },
+                        ])
+                        scenes.all.set({
+                            id: 'goal_id_' + goal.id,
+                            key: '🛠 Goal ' + goal.id,
+                            text: `_Наименование:_\r\n*    ${goal.title}*`
+                                + `\r\n_Текст:_\r\n    ${goal.text}`
+                                + `\r\n_Контракт:_\r\n    ${goal.contract.string}`
+                                + `\r\n_Ссылка:_`, //\`\`\`    ${defaults.www.host}/goal${goal.id}\`\`\``,
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        {text: defaults.www.host + `/goal${goal.id}`, url: defaults.www.host + `/goal${goal.id}`}
+                                    ],[
+                                        {id: 'setcontract'},
+                                        {id: 'setcommit'}
+                                    ],[
+                                        {id: 'listgoals', text: i18n.t('scenes.goals.view_goal.back.button_text')},
+                                    ]
+                                ],
+                                resize_keyboard: true
+                            }
+                        })
+                    })
+                    markup.push([
+                        {id: 'welcome', text: i18n.t('scenes.back.button_text')}
+                    ])
+                    
+                    await MakeRequest('editMessageText', {
+                        message_id: listGoalsMenuMessageId,
+                        text: i18n.t('scenes.goals.list_all.welcome_text')
+                    })
+                
+                    await MakeRequest('editMessageReplyMarkup', {
+                        message_id: listGoalsMenuMessageId,
+                        text: 'OK',
+                        reply_markup: {inline_keyboard: markup, resize_keyboard: true}
+                    })
+                
+                    return {text: ''}
+                
+                    // return {
+                    //     text: 'Your goals:',
+                    //     reply_markup: {
+                    //         inline_keyboard: markup
+                    //     }
+                    // }
+                })
+        }
     },
     
     /**
@@ -190,6 +275,10 @@ let controller = {
             logger.error('new goal object isn\'t defined')
             return null
         }
+        if (!newContract) {
+            logger.error('new contract object isn\'t defined')
+            return null
+        }
         let user = session.currentSession.get('user')
         if (!user) {
             logger.error('user isn\'t defined')
@@ -197,14 +286,14 @@ let controller = {
                 text: i18n.t('errors.goals.user_not_defined')
             })
         }
-        let opt = {
+
+        let ret = await MakeRequest('goals', {
             external: true,
             title: newGoal.get('title'),
             text: newGoal.get('text'),
             owner: { id: user.get('id')} ,
             method: 'POST'
-        }
-        return await MakeRequest('goals', opt)
+        })
             .then((response) => {
 
                 // Отправляем сообщение с подтверждением
@@ -212,8 +301,38 @@ let controller = {
                     text: "Цель создана"
                 })
             
-                return scenes.all.get('listallgoals')
+                return response
             })
+    
+        // Сетим айдишник цели в объекте контракта
+        newContract.set({goal_id: ret.id})
+
+        console.log('new goal', newGoal)
+        console.log('new contract', newContract)
+        console.log('sgapi response', ret)
+    
+        ret = await MakeRequest('contracts', {
+            external: true,
+            duration: newContract.get('duration'),
+            week_days: newContract.get('week_days'),
+            month_days: newContract.get('month_days'),
+            owner: { id: user.get('id')} ,
+            goal: { id: newContract.get('goal_id')} ,
+            method: 'POST'
+        })
+            .then((response) => {
+            
+                // Отправляем сообщение с подтверждением
+                MakeRequest('sendMessage', {
+                    text: "Контракт подписан"
+                })
+            
+                return response
+            })
+        
+    
+    
+        return scenes.all.get('listallgoals')
     },
     
     /**
@@ -328,8 +447,14 @@ let controller = {
                 newGoal = new Goal()
             }
     
+            // Если еще не создавали - создаем пустой объект цели
+            if (newContract === null || typeof newContract === 'undefined') {
+                newContract = new Contract()
+            }
+    
             // ... и фиксируем формат занятости в объекте новой цели
-            newGoal.setContract({occupation: correct.slice(1, 5)})
+            newGoal.setContract({occupation: correct})
+            newContract.set(correct)
         } else {
             // Апдейтим кнопку с "занятостью", добавляя туда пустое поле
             form.inline_keyboard[0][2].text =

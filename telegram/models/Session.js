@@ -87,6 +87,11 @@ function Session () {
         console.log(msg, self.getChat())
         msg = self.getChat() || msg
         
+        if (!msg.hasOwnProperty('from')) {
+            console.error('Некорректный объект msg. Вероятно сообщение из pending_updates')
+            return {}
+        }
+        
         // Смотрим текущий хэш в сессии
         let hash = self.get('hash')
         

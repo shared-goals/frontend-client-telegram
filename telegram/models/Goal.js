@@ -9,42 +9,45 @@ let logger = require('../modules/Logger').logger
  * @constructor
  */
 function Goal () {
-    this.attributes = {
+    let self = this
+
+    self.attributes = {
         id: null,
         title: null,
         text: null,
         contract: new Contract()
     }
     
-    this.set = (data) => {
-        Object.assign(this.attributes, data)
-    }
-
-    this.get = (key) => {
-        return key && typeof key !== 'undefined' ? this.attributes[key] : this.attributes
+    self.set = (data) => {
+        self.attributes = Object.assign({}, self.attributes, data)
     }
     
-    this.toJSON = () => {
-        let obj = this.get()
+    self.get = (key) => {
+        return key && typeof key !== 'undefined' ? self.attributes[key] : self.attributes
+    }
+    
+    self.toJSON = () => {
+        let obj = self.get()
         if (obj.contract.hasOwnProperty('get')) {
             obj.contract = obj.contract.get()
         }
     }
     
-    this.getContract = () => {
+    self.getContract = () => {
         'use strict'
         
-        return this.get('contract')
+        return self.get('contract')
     }
 
-    this.setContract = (data) => {
+    self.setContract = (data) => {
         'use strict'
-        let currentContract = this.getContract()
+        
+        let currentContract = self.getContract()
         if (!currentContract.hasOwnProperty('set')) {
-            this.set('contract', (new Contract()).set(currentContract))
+            self.set('contract', (new Contract()).set(currentContract))
         }
 
-        this.getContract().set(data)
+        self.getContract().set(data)
     }
 }
 

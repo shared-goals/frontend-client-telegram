@@ -9,5 +9,6 @@ module.exports = (router) => {
         .put('/goals/:goal_id', jwt, goals.update)
         .delete('/goals/:goal_id', jwt, goals.delete)
         .get('/goals/', goals.list)
-        .delete('/goals/', jwt, goals.clear);
+        .delete('/goals/', jwt, goals.clear)
+        .get('/goals/:goal_id/contract', goals.getContract);
 }

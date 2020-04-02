@@ -6,6 +6,10 @@ module.exports = {
     lang: 'ru',
     host: `${process.env.HOST}`,
     port: `${process.env.PORT}`,
+    www: {
+        host: `${process.env.WWWHOST}`,
+        port: `${process.env.WWWPORT}`,
+    },
     updateCounter: 0,
     log: true,
     icons: {
