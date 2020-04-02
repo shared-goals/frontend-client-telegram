@@ -45,7 +45,7 @@ contractSchema.method('toClient', function() {
         email: obj.owner.email,
     }
     obj.goal = {
-        id: obj.goal._id
+        id: obj.goal ? obj.goal._id : null
     }
 
     // Delete fields

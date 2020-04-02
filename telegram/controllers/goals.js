@@ -185,7 +185,7 @@ let controller = {
             })
                 .then(async (response) => {
                     let markup = []
-                    response.forEach(async(goal) => {
+                    await response.forEach(async(goal) => {
                         goal.contract = await MakeRequest(`goals/${goal.id}/contract`, {
                             external: true,
                             method: 'GET'
@@ -193,7 +193,7 @@ let controller = {
                             response.string = controller.stringifyOccupation(response)
                             return response
                         })
-                        console.log(JSON.stringify(goal))
+
                         markup.push([
                             {
                                 text: goal.title,

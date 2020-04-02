@@ -225,7 +225,7 @@ let controller = {
             contract.title = ctx.request.body.title;
             contract.owner = user._id;
             await contract.save();
-            await contract.populate('owner').execPopulate();
+            await contract.populate('owner').populate('goal').execPopulate();
             ctx.body = contract.toClient();
         } catch (err) {
             console.error(err)
@@ -326,7 +326,7 @@ let controller = {
             }
         }
         if (ctx.user) req.owner = ctx.user._id;
-        const contracts = await Contract.find(req).populate('owner').exec();
+        const contracts = await Contract.find(req).populate('owner').populate('goal').exec();
         for(let i = 0; i < contracts.length; i++) {
             contracts[i] = contracts[i].toClient();
         }
@@ -354,56 +354,7 @@ let controller = {
     clear: async (ctx) => {
         await Contract.deleteMany().exec();
         ctx.status = 204;
-    },
-    
-    /**
-     * @ swagger
-     *
-     * /goals/{goal_id}/contract/:
-     *   get:
-     *     summary: list contract owned by a given user depends to given goal
-     *     operationId: getGoalContract
-     *     tags:
-     *       - contracts
-     *     parameters:
-     *       - name: goal_id
-     *         in: path
-     *         required: true
-     *         description: the id of the goal
-     *         schema:
-     *           type: string
-     *     responses:
-     *       '200':
-     *         description: success
-     *         content:
-     *           application/json:
-     *             schema:
-     *               $ref: '#/components/schemas/Contract'
-     *       '404':
-     *         description: Goal not found
-     *
-     *
-    getByGoalId: async (ctx) => {
-        const req = {};
-        console.log(ctx)
-        if (ctx.query.goal_id) {
-            try{
-                const goal = await Goal.findById(ctx.query.goal_id).exec();
-                console.log(goal)
-                req.goal = goal._id;
-            } catch (err) {
-                console.error(err)
-                req.goal = null;
-            }
-            console.log(req.goal)
-        }
-        if (ctx.user) req.goal = ctx.goal._id;
-        const contracts = await Contract.find(req).populate('owner').populate('goal').exec();
-        for(let i = 0; i < contracts.length; i++) {
-            contracts[i] = contracts[i].toClient();
-        }
-        ctx.body = contracts;
-    }*/
+    }
 }
 
 module.exports = controller;
