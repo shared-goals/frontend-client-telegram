@@ -20,20 +20,20 @@ const I18n = require("telegraf-i18n")
 const Stage = __importDefault(require("telegraf/stage"))
 const base_1 = __importDefault(require("telegraf/scenes/base"))
 const helpers = require("./helpers")
-const keyboards_1 = require("../../util/keyboards")
+const keyboards = require("../../util/keyboards")
 const _logger = __importDefault(require("../../util/logger"))
 const { leave } = Stage.default
 const contact = new base_1.default('contact')
 
 contact.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     _logger.default.debug(ctx, 'Enters contact scene')
-    const { backKeyboard } = keyboards_1.getBackKeyboard(ctx)
+    const { backKeyboard } = keyboards.getBackKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('scenes.contact.write_to_the_creator'), backKeyboard)
 }))
 
 contact.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     _logger.default.debug(ctx, 'Leaves contact scene')
-    const { mainKeyboard } = keyboards_1.getMainKeyboard(ctx)
+    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
 }))
 

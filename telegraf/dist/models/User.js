@@ -51,7 +51,7 @@ function User (data) {
         return JSON.stringify(self.attributes)
     }
     
-    self.findById = async(id) => __awaiter(void 0, void 0, void 0, function* () {
+    self.findById = async(ctx, id) => __awaiter(void 0, void 0, void 0, function* () {
         // Отправляем запрос на получение информаии о пользователе
         yield req.make(ctx, 'users/email/' + (ctx.from.username || ctx.from.id) + '@t.me', {
             external: true,

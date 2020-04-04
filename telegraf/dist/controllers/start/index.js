@@ -22,13 +22,13 @@ const actions_1 = require("./actions")
 const helpers = require("./helpers")
 
 const session = __importDefault(require("../../util/session"))
-const keyboards_1 = require("../../util/keyboards")
+const keyboards = require("../../util/keyboards")
 
 const { leave } = Stage.default
 const start = new base_1.default('start')
 
 start.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    const { mainKeyboard } = keyboards_1.getMainKeyboard(ctx)
+    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     if (session.SGUser) {
         yield ctx.reply(ctx.i18n.t('scenes.start.welcome_back'), mainKeyboard)
     }
@@ -38,7 +38,7 @@ start.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
 }))
 
 start.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    const { mainKeyboard } = keyboards_1.getMainKeyboard(ctx)
+    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
 }))
 

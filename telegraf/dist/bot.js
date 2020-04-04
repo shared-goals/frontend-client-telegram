@@ -40,7 +40,6 @@ const Stage = __importDefault(require("telegraf/stage"))
 const Session = __importDefault(require("telegraf/session"))
 
 // DB, http
-const Mongoose = __importDefault(require("mongoose"))
 const reqPromise = __importDefault(require("request-promise"))
 const request = __importDefault(require("./util/req"))
 
@@ -48,17 +47,17 @@ const request = __importDefault(require("./util/req"))
 const User = __importDefault(require("./models/User"))
 
 // Utils
-const _logger = __importDefault(require("./util/logger"))
-const notifier_1 = require("./util/notifier")
-const error_handler_1 = __importDefault(require("./util/error-handler"))
-const keyboards_1 = require("./util/keyboards")
-const language_1 = require("./util/language")
+const logger = __importDefault(require("./util/logger"))
+const notifier = require("./util/notifier")
+const errorHandler = __importDefault(require("./util/error-handler"))
+const keyboards = require("./util/keyboards")
+const language = require("./util/language")
 
 // Controllers
-const about_1 = __importDefault(require("./controllers/about"))
-const start_1 = __importDefault(require("./controllers/start"))
-const settings_1 = __importDefault(require("./controllers/settings"))
-const admin_1 = __importDefault(require("./controllers/admin"))
+const aboutScene = __importDefault(require("./controllers/about"))
+const startScene = __importDefault(require("./controllers/start"))
+const settingsScene = __importDefault(require("./controllers/settings"))
+const adminScene = __importDefault(require("./controllers/admin"))
 
 // Middlewares
 const updater = require("./middlewares/update-user-timestamp")
@@ -73,9 +72,9 @@ const bot = new Telegraf.default(process.env.TELEGRAM_TOKEN)
 
 // Создаем первую сцену
 const stage = new Stage.default([
-    start_1.default,
-    settings_1.default,
-    admin_1.default
+    startScene.default,
+    settingsScene.default,
+    adminScene.default
 ])
 
 // Определяем локализатор
@@ -101,48 +100,49 @@ bot.use(userInfo.getUserInfo)
 
 // Определяем команду ресета
 bot.command('saveme', (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    _logger.default.debug(ctx, 'User uses /saveme command')
-    const { mainKeyboard } = keyboards_1.getMainKeyboard(ctx)
+    logger.default.debug(ctx, 'User uses /saveme command')
+    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
 }))
 
 // На любую ошибку отвечаем выводом стартовой страницы
-bot.start(error_handler_1.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+bot.start(errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     return ctx.scene.enter('start')
 })))
 
 // Основные кнопки
-bot.hears(I18n.match('keyboards.main_keyboard.settings'), updater.updateUserTimestamp, error_handler_1.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+bot.hears(I18n.match('keyboards.main_keyboard.settings'), updater.updateUserTimestamp, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     return yield ctx.scene.enter('settings')
 })))
-bot.hears(I18n.match('keyboards.main_keyboard.about'), updater.updateUserTimestamp, error_handler_1.default(about_1.default))
-bot.hears(I18n.match('keyboards.back_keyboard.back'), error_handler_1.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+bot.hears(I18n.match('keyboards.main_keyboard.about'), updater.updateUserTimestamp, errorHandler.default(aboutScene.default))
+bot.hears(I18n.match('keyboards.back_keyboard.back'), errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     // If this method was triggered, it means that bot was updated when user was not in the main menu..
-    _logger.default.debug(ctx, 'Return to the main menu with the back button')
-    const { mainKeyboard } = keyboards_1.getMainKeyboard(ctx)
+    logger.default.debug(ctx, 'Return to the main menu with the back button')
+    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
 })))
 
 // По /admin Грузим сцену админ-действий
-bot.hears(/(.*admin)/, adminConsole.isAdmin, error_handler_1.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+bot.hears(/(.*admin)/, adminConsole.isAdmin, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     return yield ctx.scene.enter('admin')
 })))
 
 // Все остальные команды
 bot.hears(/(.*?)/, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    _logger.default.debug(ctx, 'Default handler has fired')
-    const user = yield User.default.findById(ctx.from.id)
-    yield language_1.updateLanguage(ctx, user.language)
-    const { mainKeyboard } = keyboards_1.getMainKeyboard(ctx)
+    logger.default.debug(ctx, 'Default handler has fired')
+    const user = yield (new User.default).findById(ctx, ctx.from.id)
+    logger.default.debug(user.toJSON())
+    yield language.updateLanguage(ctx, user.language)
+    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('other.default_handler'), mainKeyboard)
 }))
 
 // Обработчик ошибок
 bot.catch((error) => {
-    _logger.default.error(undefined, 'Global error has happened, %O', error)
+    logger.default.error(undefined, 'Global error has happened, %O', error)
 })
 
-// setInterval(notifier_1.checkUnreleasedMovies, 86400000)
+// setInterval(notifier.checkUnreleasedMovies, 86400000)
 
 // стартуем бота в нужном режиме
 process.env.NODE_ENV === 'production' ? startProdMode(bot) : startDevMode(bot)
@@ -151,7 +151,7 @@ process.env.NODE_ENV === 'production' ? startProdMode(bot) : startDevMode(bot)
 
 // Функция старта дев-режима
 function startDevMode(bot) {
-    _logger.default.debug(undefined, 'Starting a bot in development mode')
+    logger.default.debug(undefined, 'Starting a bot in development mode')
     reqPromise.default(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/deleteWebhook`).then(() => bot.startPolling())
 }
 
@@ -159,7 +159,7 @@ function startDevMode(bot) {
 function startProdMode(bot) {
     return __awaiter(this, void 0, void 0, function* () {
         // If webhook not working, check fucking motherfucking UFW that probably blocks a port...
-        _logger.default.debug(undefined, 'Starting a bot in production mode')
+        logger.default.debug(undefined, 'Starting a bot in production mode')
         const tlsOptions = {
             key: fs.default.readFileSync(process.env.PATH_TO_KEY),
             cert: fs.default.readFileSync(process.env.PATH_TO_CERT)
@@ -170,6 +170,6 @@ function startProdMode(bot) {
         yield bot.startWebhook(`/${process.env.TELEGRAM_TOKEN}`, tlsOptions, +process.env.WEBHOOK_PORT)
         const webhookStatus = yield telegram.default.getWebhookInfo()
         console.log('Webhook status', webhookStatus)
-        notifier_1.checkUnreleasedMovies()
+        notifier.checkUnreleasedMovies()
     })
 };

@@ -19,7 +19,7 @@ Object.defineProperty(exports, "__esModule", { value: true })
 const Stage = __importDefault(require("telegraf/stage"))
 const base_1 = __importDefault(require("telegraf/scenes/base"))
 const I18n = require("telegraf-i18n")
-const keyboards_1 = require("../../util/keyboards")
+const keyboards = require("../../util/keyboards")
 const _logger = __importDefault(require("../../util/logger"))
 const helpers = require("./helpers")
 const { leave } = Stage.default
@@ -27,13 +27,13 @@ const admin = new base_1.default('admin')
 
 admin.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     _logger.default.debug(ctx, 'Enters admin scene')
-    const { backKeyboard } = keyboards_1.getBackKeyboard(ctx)
+    const { backKeyboard } = keyboards.getBackKeyboard(ctx)
     yield ctx.reply('Welcome to Admin stage', backKeyboard)
 }))
 
 admin.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     _logger.default.debug(ctx, 'Leaves admin scene')
-    const { mainKeyboard } = keyboards_1.getMainKeyboard(ctx)
+    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
 }))
 

@@ -14,11 +14,11 @@ Object.defineProperty(exports, "__esModule", { value: true })
 
 const helpers = require("./helpers")
 const common = require("../../util/common")
-const language_1 = require("../../util/language")
+const language = require("../../util/language")
 
 exports.languageChangeAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const langData = JSON.parse(ctx.callbackQuery.data)
-    yield language_1.updateLanguage(ctx, langData.p)
+    yield language.updateLanguage(ctx, langData.p)
     const accountConfirmKeyboard = helpers.getAccountConfirmKeyboard(ctx)
     accountConfirmKeyboard.disable_web_page_preview = true
     yield ctx.reply(ctx.i18n.t('scenes.start.new_account'))
