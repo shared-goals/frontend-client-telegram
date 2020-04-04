@@ -29,8 +29,8 @@ let controller = {
      *       required: true
      *       content:
      *         application/json:
-     *           schema: 
-     *             $ref: '#/components/schemas/UserPartial'
+     *           schema:
+     *             $ref: '#/components/schemas/UserUnauthorized'
      *     responses:
      *       '200':
      *         description: Success
@@ -46,14 +46,14 @@ let controller = {
         }).exec();
         if(!user) {
             ctx.status = 404;
-            ctx.body = 'User not found';
+            ctx.body = JSON.stringify({error: 404, message: 'User not found'})
             return;
         }
 
         const match = await Bcrypt.compare(ctx.request.body.password, user.password);
         if(!match) {
             ctx.status = 400;
-            ctx.body = 'Password mismatch';
+            ctx.body = JSON.stringify({error: 400, message: 'Password mismatch'})
             return;
         }
         

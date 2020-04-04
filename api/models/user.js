@@ -14,6 +14,9 @@ const userSchema = new Mongoose.Schema(
             type: String,
             required: true,
         },
+        language: {
+            type: String
+        }
     }, 
     {timestamps: true}
 );

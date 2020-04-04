@@ -13,7 +13,20 @@ const Bcrypt = require('bcrypt');
  *           type: number
  *         email:
  *           type: string
- *     UserPartial: 
+ *         language:
+ *           type: string
+ *     UserPartial:
+ *       type: object
+ *       properties:
+ *         email:
+ *           type: string
+ *         password:
+ *           type: string
+ *         language:
+ *           type: string
+ *       required:
+ *         - id
+ *     UserUnauthorized:
  *       type: object
  *       properties:
  *         email:
@@ -37,6 +50,7 @@ let controller = {
             return next();
         } catch (err) {
             ctx.status = 404;
+            ctb.body = '{error: 404}'
         }
     },
     
@@ -72,13 +86,13 @@ let controller = {
         try{
             ctx.user = await User.findOne({email: email}).exec();
             if(!ctx.user) {
-                ctx.body = '{}';
+                ctx.body = JSON.stringify({error: 404, message: 'User not found'})
                 return ctx.status = 404;
             }
             ctx.body = ctx.user.toClient();
         } catch (err) {
             ctx.status = 404;
-            ctx.body = '{}';
+            ctx.body = JSON.stringify({error: 404, message: 'User not found'})
         }
     },
 
@@ -153,11 +167,17 @@ let controller = {
      * 
      */
     update: async (ctx) => {
-        const user = ctx.user;
-        user.email = ctx.request.body.email;
-        user.password = await Bcrypt.hash(ctx.request.body.password, 10);
-        await user.save();
-        ctx.body = user.toClient();
+        const user = ctx.user
+        Object.keys(ctx.request.body).forEach(async(key) => {
+            'use strict'
+            if (key === 'password') {
+                user.password = await Bcrypt.hash(ctx.request.body.password, 10)
+            } else {
+                user[key] = ctx.request.body[key]
+            }
+        })
+        await user.save()
+        ctx.body = user.toClient()
     },
     
     /**
