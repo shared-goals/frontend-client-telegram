@@ -54,6 +54,7 @@ const keyboards = require("./util/keyboards")
 const language = require("./util/language")
 
 // Controllers
+const goalsScene = __importDefault(require("./controllers/goals"))
 const aboutScene = __importDefault(require("./controllers/about"))
 const startScene = __importDefault(require("./controllers/start"))
 const settingsScene = __importDefault(require("./controllers/settings"))
@@ -72,6 +73,7 @@ const bot = new Telegraf.default(process.env.TELEGRAM_TOKEN)
 
 // Создаем первую сцену
 const stage = new Stage.default([
+    goalsScene.default,
     startScene.default,
     settingsScene.default,
     adminScene.default
@@ -111,6 +113,9 @@ bot.start(errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, functi
 })))
 
 // Основные кнопки
+bot.hears(I18n.match('keyboards.main_keyboard.goals'), updater.updateUserTimestamp, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield ctx.scene.enter('goals')
+})))
 bot.hears(I18n.match('keyboards.main_keyboard.settings'), updater.updateUserTimestamp, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     return yield ctx.scene.enter('settings')
 })))

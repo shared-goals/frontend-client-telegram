@@ -17,22 +17,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const Stage = __importDefault(require("telegraf/stage"))
-const base_1 = __importDefault(require("telegraf/scenes/base"))
+const baseScene = __importDefault(require("telegraf/scenes/base"))
 const I18n = require("telegraf-i18n")
 const keyboards = require("../../util/keyboards")
-const _logger = __importDefault(require("../../util/logger"))
+const logger = __importDefault(require("../../util/logger"))
 const helpers = require("./helpers")
 const { leave } = Stage.default
-const admin = new base_1.default('admin')
+const admin = new baseScene.default('admin')
 
 admin.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    _logger.default.debug(ctx, 'Enters admin scene')
+    logger.default.debug(ctx, 'Enters admin scene')
     const { backKeyboard } = keyboards.getBackKeyboard(ctx)
     yield ctx.reply('Welcome to Admin stage', backKeyboard)
 }))
 
 admin.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    _logger.default.debug(ctx, 'Leaves admin scene')
+    logger.default.debug(ctx, 'Leaves admin scene')
     const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
 }))
@@ -55,5 +55,7 @@ admin.on('text', (ctx) => __awaiter(void 0, void 0, void 0, function* () {
             ctx.reply('Command was not specified')
     }
 }))
+
+logger.default.debug(undefined, '🔹️  Admin controller initiated')
 
 exports.default = admin;

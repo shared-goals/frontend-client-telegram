@@ -18,6 +18,7 @@ Object.defineProperty(exports, "__esModule", { value: true })
 
 const _logger = __importDefault(require("../util/logger"))
 const session = __importDefault(require("../util/session"))
+const helpers = __importDefault(require("../controllers/goals/helpers"))
 const req = __importDefault(require("../util/req"))
 
 /**
@@ -50,6 +51,25 @@ function Goal (data) {
     self.toJSON = () => {
         return JSON.stringify(self.attributes)
     }
+    
+    self.findById = async(ctx, id) => __awaiter(void 0, void 0, void 0, function* () {
+        // Отправляем запрос на получение информаии о цели
+        yield req.make(ctx, 'goals/' + id, {
+            method: 'GET'
+        }).then( (response) => {
+            self.set(response)
+        })
+    
+        const contract = yield req.make(ctx, `goals/${self.get('id')}/contract`, {
+            method: 'GET'
+        }).then((response) => {
+            return Object.assign({}, response, {string: helpers.stringifyOccupation(response)})
+        })
+        
+        self.set({contract: contract})
+        
+        return self
+    })
     
     self.set(data)
     

@@ -18,17 +18,17 @@ Object.defineProperty(exports, "__esModule", { value: true })
 
 const I18n = require("telegraf-i18n")
 const Stage = __importDefault(require("telegraf/stage"))
-const base_1 = __importDefault(require("telegraf/scenes/base"))
+const baseScene = __importDefault(require("telegraf/scenes/base"))
 const helpers = require("./helpers")
-const actions_1 = require("./actions")
+const actions = require("./actions")
 const keyboards = require("../../util/keyboards")
 const session = require("../../util/session")
-const _logger = __importDefault(require("../../util/logger"))
+const logger = __importDefault(require("../../util/logger"))
 const { leave } = Stage.default
-const settings = new base_1.default('settings')
+const settings = new baseScene.default('settings')
 
 settings.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    _logger.default.debug(ctx, 'Enters settings scene')
+    logger.default.debug(ctx, 'Enters settings scene')
     const { backKeyboard } = keyboards.getBackKeyboard(ctx)
     session.deleteFromSession(ctx, 'settingsScene')
     yield helpers.sendMessageToBeDeletedLater(ctx, 'scenes.settings.what_to_change', helpers.getMainKeyboard(ctx))
@@ -36,7 +36,7 @@ settings.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
 }))
 
 settings.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    _logger.default.debug(ctx, 'Leaves settings scene')
+    logger.default.debug(ctx, 'Leaves settings scene')
     const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
     session.deleteFromSession(ctx, 'settingsScene')
@@ -46,12 +46,14 @@ settings.command('saveme', leave())
 
 settings.hears(I18n.match('keyboards.back_keyboard.back'), leave())
 
-settings.action(/languageSettings/, actions_1.languageSettingsAction)
+settings.action(/languageSettings/, actions.languageSettingsAction)
 
-settings.action(/languageChange/, actions_1.languageChangeAction)
+settings.action(/languageChange/, actions.languageChangeAction)
 
-settings.action(/accountSummary/, actions_1.accountSummaryAction)
+settings.action(/accountSummary/, actions.accountSummaryAction)
 
-settings.action(/closeAccountSummary/, actions_1.closeAccountSummaryAction)
+settings.action(/closeAccountSummary/, actions.closeAccountSummaryAction)
+
+logger.default.debug(undefined, '🔹️  Settings controller initiated')
 
 exports.default = settings;

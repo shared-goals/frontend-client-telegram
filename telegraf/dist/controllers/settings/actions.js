@@ -17,7 +17,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const helpers = require("./helpers")
-const _logger = __importDefault(require("../../util/logger"))
+const logger = __importDefault(require("../../util/logger"))
 const User_1 = __importDefault(require("../../models/User"))
 const language = require("../../util/language")
 const keyboards = require("../../util/keyboards")
@@ -38,7 +38,7 @@ exports.languageChangeAction = (ctx) => __awaiter(void 0, void 0, void 0, functi
 })
 
 exports.accountSummaryAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    _logger.default.debug(ctx, 'Checking account summary')
+    logger.default.debug(ctx, 'Checking account summary')
     const user = yield User_1.default.findById(ctx.from.id)
     yield ctx.editMessageText(ctx.i18n.t('scenes.settings.account_summary', {
         username: user.username,

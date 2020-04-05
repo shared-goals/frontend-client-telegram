@@ -17,15 +17,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const Stage = __importDefault(require("telegraf/stage"))
-const base_1 = __importDefault(require("telegraf/scenes/base"))
-const actions_1 = require("./actions")
+const baseScene = __importDefault(require("telegraf/scenes/base"))
+const actions = require("./actions")
 const helpers = require("./helpers")
+const logger = __importDefault(require("../../util/logger"))
 
 const session = __importDefault(require("../../util/session"))
 const keyboards = require("../../util/keyboards")
 
 const { leave } = Stage.default
-const start = new base_1.default('start')
+const start = new baseScene.default('start')
 
 start.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
@@ -44,11 +45,13 @@ start.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
 
 start.command('saveme', leave())
 
-start.action(/languageChange/, actions_1.languageChangeAction)
+start.action(/languageChange/, actions.languageChangeAction)
 
 start.action(/confirmAccount/, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     yield ctx.answerCbQuery()
     ctx.scene.leave()
 }))
+
+logger.default.debug(undefined, '🔹️  Start controller initiated')
 
 exports.default = start;

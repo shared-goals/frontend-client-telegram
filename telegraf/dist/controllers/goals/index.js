@@ -16,34 +16,38 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
-const I18n = require("telegraf-i18n")
 const Stage = __importDefault(require("telegraf/stage"))
-const base_1 = __importDefault(require("telegraf/scenes/base"))
+const baseScene = __importDefault(require("telegraf/scenes/base"))
+const actions = require("./actions")
 const helpers = require("./helpers")
-const keyboards = require("../../util/keyboards")
-const _logger = __importDefault(require("../../util/logger"))
-const { leave } = Stage.default
-const contact = new base_1.default('contact')
+const logger = __importDefault(require("../../util/logger"))
 
-contact.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    _logger.default.debug(ctx, 'Enters contact scene')
-    const { backKeyboard } = keyboards.getBackKeyboard(ctx)
-    yield ctx.reply(ctx.i18n.t('scenes.contact.write_to_the_creator'), backKeyboard)
+const session = __importDefault(require("../../util/session"))
+const keyboards = require("../../util/keyboards")
+
+const { leave } = Stage.default
+const start = new baseScene.default('goals')
+
+start.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    yield ctx.reply('Выберите действие', helpers.getInitKeyboard())
 }))
 
-contact.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    _logger.default.debug(ctx, 'Leaves contact scene')
+start.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
 }))
 
-contact.command('saveme', leave())
+start.command('saveme', leave())
 
-contact.hears(I18n.match('keyboards.back_keyboard.back'), leave())
+start.action(/newGoalCreate/, actions.newGoalCreateAction)
+start.action(/goalsListView/, actions.goalsListViewAction)
+start.action(/goalView/, actions.goalViewAction)
 
-contact.on('text', (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    yield helpers.sendMessage(ctx)
-    yield ctx.reply(ctx.i18n.t('scenes.contact.message_delivered'))
+start.action(/confirmAccount/, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    yield ctx.answerCbQuery()
+    ctx.scene.leave()
 }))
 
-exports.default = contact;
+logger.default.debug(undefined, '🔹️  Start controller initiated')
+
+exports.default = start;
