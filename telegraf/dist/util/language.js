@@ -16,7 +16,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
-const _logger = __importDefault(require("./logger"))
+const logger = __importDefault(require("./logger"))
 const req = __importDefault(require("../util/req"))
 const session = require("./session")
 
@@ -32,12 +32,12 @@ function updateLanguage(ctx, newLang) {
             id: ctx.session.SGUser.id,
             language: newLang
         }).then(() => {
-            _logger.default.debug(ctx, 'Updating language for user to %s', newLang)
+            logger.default.debug(ctx, 'Updating language for user to %s', newLang)
     
             session.saveToSession(ctx, 'language', newLang)
             ctx.i18n.locale(newLang)
         }).catch((response) => {
-            _logger.default.debug(ctx, 'Ошибка установки языка: ', response.message)
+            logger.default.debug(ctx, 'Ошибка установки языка: ', response.message)
         })
     })
 }

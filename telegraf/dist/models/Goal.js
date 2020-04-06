@@ -20,6 +20,7 @@ const _logger = __importDefault(require("../util/logger"))
 const session = __importDefault(require("../util/session"))
 const helpers = __importDefault(require("../controllers/goals/helpers"))
 const req = __importDefault(require("../util/req"))
+const Contract = __importDefault(require("./Contract"))
 
 /**
  * Класс цели
@@ -33,7 +34,7 @@ function Goal (data) {
         owner: null,
         title: '',
         text: '',
-        contract: null,
+        contract: new Contract.default(),
         archived: null,
         completed: null,
         createdAt: null,
@@ -60,13 +61,15 @@ function Goal (data) {
             self.set(response)
         })
     
-        const contract = yield req.make(ctx, `goals/${self.get('id')}/contract`, {
+        const contractData = yield req.make(ctx, `goals/${self.get('id')}/contract`, {
             method: 'GET'
         }).then((response) => {
             return Object.assign({}, response, {string: helpers.stringifyOccupation(response)})
         })
+        const contract = new Contract.default()
+        contract.set(contractData)
         
-        self.set({contract: contract})
+        self.set({contract: contractData})
         
         return self
     })

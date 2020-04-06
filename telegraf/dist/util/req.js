@@ -16,7 +16,7 @@ Object.defineProperty(exports, "__esModule", { value: true })
 
 require('dotenv')
 
-const _logger = __importDefault(require("./logger"))
+const logger = __importDefault(require("./logger"))
 const request = __importDefault(require("request-promise"))
 
 /**
@@ -38,7 +38,7 @@ async function make(ctx, method, args = {}) {
             form: args
         }
 
-        _logger.default.debug(ctx, method + ' ' + JSON.stringify(opt))
+        logger.default.debug(ctx, method + ' ' + JSON.stringify(opt))
 
         request.default(opt, (error, response, body) => {
             if (!error) {
@@ -46,7 +46,7 @@ async function make(ctx, method, args = {}) {
                 try {
                     responseJSON = JSON.parse(body)
                 } catch (err) {
-                    _logger.default.error(err)
+                    logger.default.error(err)
                 }
                 // console.log(error, body)
                 if (responseJSON !== null) {

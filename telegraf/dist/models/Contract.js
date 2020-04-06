@@ -32,6 +32,7 @@ function Contract (data) {
         owner: null,
         goal: null,
         duration: 0,
+        occupation: null,
         week_days: [],
         month_days: [],
         next_run: null,
