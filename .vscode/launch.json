@@ -7,12 +7,23 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "API",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-//            "program": "${file}"
-            "program": "E:\\Work\\SRC\\sharedgoals\\telegraf\\dist\\bot.js"
+            "program": "${workspaceFolder}/api/index.js",
+            "envFile": "${workspaceFolder}/api/.env"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch bot",
+            "program": "${workspaceFolder}/telegraf/bot.js",
+            "envFile": "${workspaceFolder}/telegraf/.env",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
         }
+
     ]
 }
