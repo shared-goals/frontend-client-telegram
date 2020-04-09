@@ -4,6 +4,7 @@
 # Logs
 logs
 *.log
+*.crt
 
 # Dependency directories
 node_modules/
