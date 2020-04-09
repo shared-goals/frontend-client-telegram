@@ -16,8 +16,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
-const _logger = __importDefault(require("../util/logger"))
-const session = __importDefault(require("../util/session"))
+const logger = __importDefault(require("../util/logger"))
 const req = __importDefault(require("../util/req"))
 
 /**
@@ -29,6 +28,7 @@ function User (data) {
     data = data || {}
     
     self.attributes = {
+        id: null,
         createdAt: null,
         updatedAt: null,
         language: 'ru',
@@ -68,6 +68,6 @@ function User (data) {
     return self
 }
 
-_logger.default.debug(undefined, '🔸️  User model initiated')
+logger.default.debug(undefined, '🔸️  User model initiated')
 
 exports.default = User;

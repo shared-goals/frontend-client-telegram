@@ -25,9 +25,9 @@ Object.defineProperty(exports, "__esModule", { value: true })
  * @param next - next function
  */
 exports.updateUserTimestamp = (ctx, next) => __awaiter(void 0, void 0, void 0, function* () {
-    yield req.make(ctx, 'users/' + ctx.session.SGUser.id, {
+    yield req.make(ctx, 'users/' + ctx.session.SGUser.get('id'), {
         method: 'PUT',
-        id: ctx.session.SGUser.id,
+        id: ctx.session.SGUser.get('id'),
         updatedAt: new Date().getTime()
     }).then(() => {
         logger.default.debug(ctx, 'Updating timestamp for user to now')

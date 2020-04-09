@@ -41,7 +41,7 @@ exports.newGoalCreateAction = newGoalCreateAction
 exports.goalsListViewAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.fetching'))
     
-    const goals = yield req.make(ctx, 'users/' + ctx.session.SGUser.id + '/goals', {
+    const goals = yield req.make(ctx, 'users/' + ctx.session.SGUser.get('id') + '/goals', {
         method: 'GET'
     }).then(async (response) => {
         const goals = response
@@ -127,31 +127,97 @@ exports.newGoalAnyButtonHandler = async(ctx) => __awaiter(void 0, void 0, void 0
         case 'enterNewGoalTitle': {
             logger.default.debug(ctx, 'Setting new goal title to', ctx.match.input)
             newGoals[ctx.session.newGoalId].set({title: ctx.match.input})
+            newGoals[ctx.session.newGoalId].updateReadyState(ctx)
             session.saveToSession(ctx, 'newGoals', newGoals)
             break
         }
         case 'enterNewGoalDescription': {
             logger.default.debug(ctx, 'Setting new goal description to', ctx.match.input)
             newGoals[ctx.session.newGoalId].set({text: ctx.match.input})
+            newGoals[ctx.session.newGoalId].updateReadyState(ctx)
             session.saveToSession(ctx, 'newGoals', newGoals)
             break
         }
         case 'enterNewGoalOccupation': {
-            logger.default.debug(ctx, 'Setting new goal occupation to', ctx.match.input)
-    
-            let contract = newGoals[ctx.session.newGoalId].get('contract')
-            
             // Валидируем введенную строку
             let correct = helpers.validateOccupationFormat(ctx, ctx.match.input)
-            contract.set(correct)
-            contract.set({occupation: ctx.match.input})
+            if (correct !== null) {
+                logger.default.debug(ctx, 'Setting new goal occupation to', ctx.match.input)
     
-            newGoals[ctx.session.newGoalId].set({contract: contract})
-            session.saveToSession(ctx, 'newGoals', newGoals)
+                let contract = newGoals[ctx.session.newGoalId].get('contract')
+    
+                contract.set(correct)
+                contract.set({occupation: ctx.match.input})
+    
+                newGoals[ctx.session.newGoalId].set({contract: contract})
+                newGoals[ctx.session.newGoalId].get('contract').updateReadyState(ctx)
+                newGoals[ctx.session.newGoalId].updateReadyState(ctx)
+                session.saveToSession(ctx, 'newGoals', newGoals)
+            } else {
+                newGoals[ctx.session.newGoalId].get('contract').updateReadyState(ctx)
+                newGoals[ctx.session.newGoalId].updateReadyState(ctx)
+                logger.default.error(ctx, 'Error setting new goal occupation. Parse error:', ctx.match.input)
+                yield ctx.reply('Некорректное значение параметра занятости')
+            }
             break
         }
     }
-    console.log(JSON.stringify(ctx.session.newGoals[ctx.session.newGoalId].toJSON()))
     
     newGoalCreateAction(ctx)
+})
+
+exports.newGoalSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    let newGoal
+    
+    if (typeof ctx.session.newGoalId !== 'undefined' && typeof ctx.session.newGoals !== 'undefined') {
+        newGoal = ctx.session.newGoals[ctx.session.newGoalId]
+    }
+    
+    if (!newGoal) {
+        logger.default.error('new goal object isn\'t defined')
+        ctx.reply('Цель не задана')
+        return null
+    }
+    
+    newGoal.updateReadyState(ctx)
+    console.log(newGoal)
+    if (newGoal.get('ready') !== true) {
+        logger.default.error('new goal object isn\'t ready')
+        ctx.reply('Параметры цели заданы не полностью')
+        return null
+    }
+
+    if (!ctx.session.SGUser) {
+        logger.default.debug('user isn\'t defined')
+        return yield req.make('sendMessage', {
+            text: ctx.i18n.t('errors.goals.user_not_defined')
+        })
+    }
+    
+    const ret = yield req.make(ctx, 'goals', {
+        title: newGoal.get('title'),
+        text: newGoal.get('text'),
+        owner: { id: ctx.session.SGUser.get('id')} ,
+        method: 'POST'
+    })
+
+    ctx.reply('Цель создана')
+    
+    // Сетим айдишник цели в объекте контракта
+    const newContract = newGoal.get('contract')
+    newContract.set({goal_id: ret.id})
+    
+    yield req.make(ctx, 'contracts', {
+        duration: newContract.get('duration'),
+        week_days: newContract.get('week_days'),
+        month_days: newContract.get('month_days'),
+        owner: { id: ctx.session.SGUser.get('id')} ,
+        goal: { id: newContract.get('goal_id')} ,
+        method: 'POST'
+    })
+
+    ctx.reply('Контракт подписан')
+    
+    session.deleteFromSession(ctx, 'state')
+    session.deleteFromSession(ctx, 'newGoalId')
 });

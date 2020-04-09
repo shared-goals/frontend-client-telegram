@@ -6,7 +6,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
-const _logger = __importDefault(require("./logger"))
+const logger = __importDefault(require("./logger"))
 
 /**
  * Saving data to the session
@@ -15,7 +15,7 @@ const _logger = __importDefault(require("./logger"))
  * @param data - data to store
  */
 function saveToSession(ctx, field, data) {
-    _logger.default.debug(ctx, 'Saving %s to session', field)
+    logger.default.debug(ctx, 'Saving %s to session', field)
     ctx.session[field] = data
 }
 
@@ -27,7 +27,7 @@ exports.saveToSession = saveToSession
  * @param field - field to delete
  */
 function deleteFromSession(ctx, field) {
-    _logger.default.debug(ctx, 'Deleting %s from session', field)
+    logger.default.debug(ctx, 'Deleting %s from session', field)
     delete ctx.session[field]
 }
 

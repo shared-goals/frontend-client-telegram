@@ -1,8 +1,20 @@
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value) }) }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)) } catch (e) { reject(e) } }
+        function rejected(value) { try { step(generator["throw"](value)) } catch (e) { reject(e) } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected) }
+        step((generator = generator.apply(thisArg, _arguments || [])).next())
+    })
+}
+
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const Telegraf = require("telegraf")
+const lodash_1 = require("lodash")
+const session = require("../../util/session")
 const Goal = require("../../models/Goal")
 
 const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -115,13 +127,8 @@ exports.stringifyOccupation = stringifyOccupation
  */
 function getInitKeyboard(ctx) {
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
-        [
-            m.callbackButton(`Новая цель`, JSON.stringify({ a: 'newGoalCreate' }), false),
-            m.callbackButton(`Список целей`, JSON.stringify({ a: 'goalsListView' }), false)
-        ],
-        [
-            m.callbackButton(ctx.i18n.t('scenes.back.button_text'), ctx.i18n.t('keyboards.main_keyboard.goals'), false)
-        ]
+        m.callbackButton(`Новая цель`, JSON.stringify({ a: 'newGoalCreate' }), false),
+        m.callbackButton(`Список целей`, JSON.stringify({ a: 'goalsListView' }), false)
     ], {}))
 }
 
@@ -165,6 +172,32 @@ function goalsListKeyboard(ctx, goals) {
 exports.goalsListKeyboard = goalsListKeyboard
 
 /**
+ * Send message and saving it to the session. Later it can be deleted.
+ * Used to avoid messages duplication
+ * @param ctx - telegram context
+ * @param translationKey - translation key
+ * @param extra - extra for the message, e.g. keyboard
+ */
+function sendMessageToBeDeletedLater(ctx, translationKey, extra) {
+    return __awaiter(this, void 0, void 0, function* () {
+        ctx.webhookReply = false
+        const message = yield ctx.reply(ctx.i18n.t(translationKey), extra)
+        const messagesToDelete = lodash_1.get(ctx.session, 'goalsScene.messagesToDelete', [])
+        session.saveToSession(ctx, 'goalsScene', {
+            messagesToDelete: [
+                ...messagesToDelete,
+                {
+                    chatId: message.chat.id,
+                    messageId: message.message_id
+                }
+            ]
+        })
+    })
+}
+
+exports.sendMessageToBeDeletedLater = sendMessageToBeDeletedLater
+
+/**
  *
  * @param ctx
  * @returns {*|ExtraEditMessage}
@@ -196,7 +229,7 @@ function newGoalCreateKeyboard(ctx) {
                 + ctx.i18n.t('scenes.goals.set_occupation.button_text'), 'setNewGoalOccupation', false)
         ],
         [
-            m.callbackButton(ctx.i18n.t('scenes.submit.button_text'), 'setNewGoalSubmit', false),
+            m.callbackButton(ctx.i18n.t('scenes.submit.button_text'), 'newGoalSubmit', false),
             m.callbackButton(ctx.i18n.t('scenes.back.button_text'), ctx.i18n.t('keyboards.main_keyboard.goals'), false)
         ]
     ], {}))

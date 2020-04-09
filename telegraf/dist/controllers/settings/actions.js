@@ -23,7 +23,9 @@ const language = require("../../util/language")
 const keyboards = require("../../util/keyboards")
 const session = require("../../util/session")
 
-exports.languageSettingsAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () { return yield ctx.editMessageText(ctx.i18n.t('scenes.settings.pick_language'), helpers.getLanguageKeyboard()) })
+exports.languageSettingsAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield ctx.editMessageText(ctx.i18n.t('scenes.settings.pick_language'), helpers.getLanguageKeyboard())
+})
 
 exports.languageChangeAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const langData = JSON.parse(ctx.callbackQuery.data)

@@ -16,8 +16,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
-const _logger = __importDefault(require("../util/logger"))
-const session = __importDefault(require("../util/session"))
+const logger = __importDefault(require("../util/logger"))
 const helpers = __importDefault(require("../controllers/goals/helpers"))
 const req = __importDefault(require("../util/req"))
 const Contract = __importDefault(require("./Contract"))
@@ -74,11 +73,19 @@ function Goal (data) {
         return self
     })
     
+    self.updateReadyState = (ctx) => {
+        self.set({ready:
+            self.get('title') !== null && self.get('title') !== '' &&
+            self.get('text') !== null && self.get('text') !== '' &&
+            self.get('contract').get('ready') === true
+        })
+    }
+    
     self.set(data)
     
     return self
 }
 
-_logger.default.debug(undefined, '🔸️  Goal model initiated')
+logger.default.debug(undefined, '🔸️  Goal model initiated')
 
 exports.default = Goal;

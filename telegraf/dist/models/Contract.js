@@ -16,9 +16,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
-const _logger = __importDefault(require("../util/logger"))
-const session = __importDefault(require("../util/session"))
-const req = __importDefault(require("../util/req"))
+const logger = __importDefault(require("../util/logger"))
+const helpers = __importDefault(require("../controllers/goals/helpers"))
 
 /**
  * Класс контракта к цели
@@ -38,7 +37,8 @@ function Contract (data) {
         next_run: null,
         last_run: null,
         createdAt: null,
-        updatedAt: null
+        updatedAt: null,
+        ready: false
     }
     
     self.set = (data) => {
@@ -53,11 +53,15 @@ function Contract (data) {
         return JSON.stringify(self.attributes)
     }
     
+    self.updateReadyState = (ctx) => {
+        self.set({ready: helpers.validateOccupationFormat(ctx, self.get('occupation')) !== null})
+    }
+    
     self.set(data)
     
     return self
 }
 
-_logger.default.debug(undefined, '🔸️  Contract model initiated')
+logger.default.debug(undefined, '🔸️  Contract model initiated')
 
 exports.default = Contract;

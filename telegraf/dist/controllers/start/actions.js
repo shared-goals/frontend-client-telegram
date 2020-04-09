@@ -13,7 +13,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const helpers = require("./helpers")
-const common = require("../../util/common")
 const language = require("../../util/language")
 
 exports.languageChangeAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {

@@ -16,7 +16,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
-const _logger = __importDefault(require("../util/logger"))
+const logger = __importDefault(require("../util/logger"))
 const session = __importDefault(require("../util/session"))
 const User = require("../models/User")
 const req = __importDefault(require("../util/req"))
@@ -30,12 +30,12 @@ const req = __importDefault(require("../util/req"))
 const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* () {
     // Смотрим текущий хэш в сессии
     let hash = ctx.session.SGAuthToken
-    let user
     
     // ctx.i18n.locale(ctx.session.language)
     
     const now = new Date().getTime()
     const newUser = new User.default({
+        id: null,
         createdAt: now,
         updatedAt: now,
         language: ctx.session.language || 'ru',
@@ -55,17 +55,17 @@ const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* (
             password: newUser.get('password')
         }).then((response) => {
             if (response.hasOwnProperty('token')) {
-                _logger.default.debug(ctx, 'Сессия авторизована, хэш: ', response.token)
+                logger.default.debug(ctx, 'Сессия авторизована, хэш: ', response.token)
 
                 // ... значит логин произошел, фиксируем хэш в сессию
                 session.saveToSession(ctx, 'SGAuthToken', response.token)
             }
         }).catch((response) => {
-            _logger.default.debug(ctx, 'Сессия не авторизована, ошибка: ', response.message)
+            logger.default.debug(ctx, 'Сессия не авторизована, ошибка: ', response.message)
         })
         hash = ctx.session.SGAuthToken
     } else {
-        _logger.default.debug(ctx, 'Сессия авторизована, хэш: ', hash)
+        logger.default.debug(ctx, 'Сессия авторизована, хэш: ', hash)
     }
     
     // Если в итоге хэш в сессии есть
@@ -81,23 +81,19 @@ const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* (
                 method: 'GET'
             }).then(async function (response) {
                 // Сетим юзера в сессии
-                Object.keys(response || {}).forEach(async(key) => {
-                    'use strict'
-                    newUser[key] = response[key]
-                })
+                newUser.set(response || {})
                 session.saveToSession(ctx, 'SGUser', newUser)
-                
-                _logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.SGUser.toJSON())
+                logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.SGUser.toJSON())
             })
         } else {
-            _logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.SGUser.toJSON(), `\r\n`)
+            logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.SGUser.toJSON(), `\r\n`)
         }
 
         // ctx.reply('Пользователь определен')
     } else {
     
         // ctx.reply(ctx.i18n.t('scenes.start.registering_user'))
-        _logger.default.debug(ctx, 'Starting new user creation')
+        logger.default.debug(ctx, 'Starting new user creation')
     
         yield req.make(ctx, 'register', {
             method: 'POST',
@@ -105,13 +101,13 @@ const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* (
             password: newUser.get('password')
         }).then((response) => {
     
-            _logger.default.debug(ctx, 'New user has been created')
+            logger.default.debug(ctx, 'New user has been created')
     
             session.saveToSession(ctx, 'SGUser', response)
         
             // ctx.reply(ctx.i18n.t('scenes.start.user_registered', {username: ctx.from.username}))
         }).catch((response) => {
-            _logger.default.debug(ctx, 'Ошибка регистрации пользователя: ', response.message)
+            logger.default.debug(ctx, 'Ошибка регистрации пользователя: ', response.message)
         })
     
         getUserInfo(ctx)

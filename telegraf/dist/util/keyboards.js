@@ -25,7 +25,6 @@ exports.getBackKeyboard = (ctx) => {
 exports.getMainKeyboard = (ctx) => {
     const mainKeyboardGoals = ctx.i18n.t('keyboards.main_keyboard.goals')
     const mainKeyboardContracts = ctx.i18n.t('keyboards.main_keyboard.contracts')
-    
     const mainKeyboardSettings = ctx.i18n.t('keyboards.main_keyboard.settings')
     const mainKeyboardAbout = ctx.i18n.t('keyboards.main_keyboard.about')
 

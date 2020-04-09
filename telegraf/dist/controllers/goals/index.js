@@ -16,32 +16,47 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
+const I18n = require("telegraf-i18n")
+const Stage = __importDefault(require("telegraf/stage"))
 const baseScene = __importDefault(require("telegraf/scenes/base"))
-const actions = require("./actions")
 const helpers = require("./helpers")
-const logger = __importDefault(require("../../util/logger"))
+const actions = require("./actions")
 const keyboards = require("../../util/keyboards")
-
+const session = require("../../util/session")
+const logger = __importDefault(require("../../util/logger"))
+const { leave } = Stage.default
 const goals = new baseScene.default('goals')
 
 goals.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    yield ctx.reply('Выберите действие', helpers.getInitKeyboard(ctx))
+    logger.default.debug(ctx, 'Enters goals scene')
+    const { backKeyboard } = keyboards.getBackKeyboard(ctx)
+    session.deleteFromSession(ctx, 'goalsScene')
+    yield helpers.sendMessageToBeDeletedLater(ctx, 'scenes.goals.welcome_text', helpers.getInitKeyboard(ctx))
+    yield helpers.sendMessageToBeDeletedLater(ctx, 'scenes.goals.welcome_more_text', backKeyboard)
 }))
 
 goals.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    logger.default.debug(ctx, 'Leaves goals scene')
     const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
+    session.deleteFromSession(ctx, 'goalsScene')
 }))
 
 goals.action(/newGoalCreate/, actions.newGoalCreateAction)
 goals.action(/goalsListView/, actions.goalsListViewAction)
 goals.action(/goalView/, actions.goalViewAction)
+goals.action(/newGoalSubmit/, actions.newGoalSubmit)
 
 // Обработка нажатий на кнопки, после которых должны быть инициированы вводы с клавиатуры
 goals.action(/.+/, actions.newGoalAnyButtonAction)
 
+goals.hears(I18n.match('keyboards.back_keyboard.back'), leave())
+
 // Обработка обычных вводов с клавиатуры
 goals.hears(/.+/, actions.newGoalAnyButtonHandler)
+
+goals.command('saveme', leave())
+
 
 logger.default.debug(undefined, '🔹️  Start controller initiated')
 

@@ -23,6 +23,8 @@
             "main": "Пару слов о SharedGoals."
         },
         "goals": {
+            "welcome_text": "Действия:",
+            "welcome_more_text": "Выберите действие с целями из перечисленных выше",
             "your_goals": "Ваши цели:",
             "list_all": {
                 "fetching": "Запрашиваем список целей...",
