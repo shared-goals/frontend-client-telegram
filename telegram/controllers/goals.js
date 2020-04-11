@@ -30,7 +30,7 @@ let controller = {
      *   10h every week
      * @param txt
      */
-    validateOccupationFormat: (txt) => {
+    validateContractFormat: (txt) => {
         let regStr = '^(\\d+)\\s*('
             + controller.mins_variants.join('|')
             + '|' + controller.hours_variants.join('|')
@@ -99,7 +99,7 @@ let controller = {
         return ret
     },
     
-    stringifyOccupation: (data) => {
+    stringifyContract: (data) => {
         return (data && data.hasOwnProperty('duration') && data.hasOwnProperty('duration') ?
             ((data.duration >= 60 ? (data.duration / 60) + 'h' : data.duration + 'min')
             + ' every ' + (data.week_days.length > 0 ? data.week_days.join(',') : data.month_days.join(',')))
@@ -190,7 +190,7 @@ let controller = {
                             external: true,
                             method: 'GET'
                         }).then((response) => {
-                            response.string = controller.stringifyOccupation(response)
+                            response.string = controller.stringifyContract(response)
                             return response
                         })
 
@@ -431,7 +431,7 @@ let controller = {
         })
     
         // Валидируем введенную строку
-        let correct = controller.validateOccupationFormat(msg.text)
+        let correct = controller.validateContractFormat(msg.text)
         
         // Получаем конфигурацию формы кнопок создания новой цели
         let form = scenes.all.get('newgoalmenu').reply_markup

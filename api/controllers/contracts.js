@@ -79,7 +79,6 @@ let controller = {
     getById: async(id, ctx, next) => {
         try{
             ctx.contract = await Contract.findById(id).populate('owner').populate('goal').exec();
-            console.log('--==', ctx.contract, '==--')
             if(!ctx.contract) return ctx.status = 404;
             return next();
         } catch (err) {
@@ -219,11 +218,29 @@ let controller = {
      */
     update: async (ctx) => {
         try{
+            const goal = await Goal.findById(ctx.request.body.goal.id);
+            if(!goal) return ctx.body = 400;
+    
             const user = await User.findById(ctx.request.body.owner.id);
             if(!user) return ctx.body = 400;
+
             const contract = ctx.contract;
-            contract.title = ctx.request.body.title;
+            
+            // Object.keys(contract).forEach((key) => {
+            //     'use strict'
+            //
+            //     if (!key.match(/^_/)) {
+            //         contract[key] = ctx.request.body[key]
+            //     }
+            // })
+    
+            contract.duration = ctx.request.body.duration
+            contract.week_days = ctx.request.body.week_days || []
+            contract.month_days = ctx.request.body.month_days || []
+            
+            contract.goal = goal._id;
             contract.owner = user._id;
+    
             await contract.save();
             await contract.populate('owner').populate('goal').execPopulate();
             ctx.body = contract.toClient();
@@ -354,6 +371,85 @@ let controller = {
     clear: async (ctx) => {
         await Contract.deleteMany().exec();
         ctx.status = 204;
+    },
+    
+    /**
+     * @swagger
+     *
+     * /contracts/{goal_id}/{owner_id}:
+     *   get:
+     *     summary: get a contract of given user to a given goal
+     *     operationId: getContractByGoalAndOwner
+     *     tags:
+     *       - contracts
+     *     parameters:
+     *       - name: goal_id
+     *         in: path
+     *         required: true
+     *         description: the id of the goal of contract to retrieve
+     *         schema:
+     *           type: string
+     *       - name: owner_id
+     *         in: path
+     *         required: true
+     *         description: the id of the user of contract to retrieve
+     *         schema:
+     *           type: string
+     *     responses:
+     *       '200':
+     *         description: success
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Contract'
+     *       '404':
+     *         description: Contract not found
+     *
+     */
+    getByGoalAndOwner: async (ctx) => {
+        const req = {}
+        ctx.query = controller.getParamsFromQuery('/contracts/{goal_id}/{owner_id}', ctx.request.url)
+
+        if (ctx.query.goal_id) {
+            try{
+                const goal = await Goal.findById(ctx.query.goal_id).exec()
+                req.goal = goal._id
+            } catch (err) {
+                req.goal = null
+            }
+        }
+        if(!req.goal) {
+            console.error('Goal is not defined. Check request body')
+            return ctx.status = 400
+        }
+        if (ctx.query.owner_id) {
+            try{
+                const user = await User.findById(ctx.query.owner_id).exec()
+                req.owner = user._id
+            } catch (err) {
+                req.owner = null
+            }
+        }
+        if(!req.owner) {
+            console.error('Goal is not defined. Check request body')
+            return ctx.status = 400
+        }
+
+        ctx.body = (await Contract.findOne(req).populate('owner').populate('goal').exec()).toClient();
+    },
+    
+    /**
+     *
+     * @param pattern
+     * @param url
+     * @returns {any}
+     */
+    getParamsFromQuery: (pattern, url) => {
+        'use strict'
+    
+        const re = new RegExp(pattern.replace(/\{([^\}]+)\}/g, '(?<$1>\\d+)'))
+        const matches = re.exec(url)
+        return matches !== null ? matches.groups : null
     }
 }
 

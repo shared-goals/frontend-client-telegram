@@ -53,7 +53,13 @@ function User (data) {
     
     self.findById = async(ctx, id) => __awaiter(void 0, void 0, void 0, function* () {
         // Отправляем запрос на получение информаии о пользователе
-        yield req.make(ctx, 'users/email/' + (ctx.from.username || ctx.from.id) + '@t.me', {
+        let url
+        if (id) {
+            url = 'users/' + id
+        } else {
+            url = 'users/email/' + id || (ctx.from.username || ctx.from.id) + '@t.me'
+        }
+        yield req.make(ctx, url, {
             external: true,
             method: 'GET'
         }).then( (response) => {

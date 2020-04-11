@@ -23,16 +23,22 @@ const helpers = require("./helpers")
 const actions = require("./actions")
 const keyboards = require("../../util/keyboards")
 const session = require("../../util/session")
+const common = require("../../util/common")
 const logger = __importDefault(require("../../util/logger"))
 const { leave } = Stage.default
 const goals = new baseScene.default('goals')
+exports.shortCommands = ['newgoal', 'viewgoal', 'editgoals', 'goals']
 
-goals.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+goals.enter((ctx, state, silent) => __awaiter(void 0, void 0, void 0, function* () {
     logger.default.debug(ctx, 'Enters goals scene')
     const { backKeyboard } = keyboards.getBackKeyboard(ctx)
     session.deleteFromSession(ctx, 'goalsScene')
-    yield helpers.sendMessageToBeDeletedLater(ctx, 'scenes.goals.welcome_text', helpers.getInitKeyboard(ctx))
-    yield helpers.sendMessageToBeDeletedLater(ctx, 'scenes.goals.welcome_more_text', backKeyboard)
+    if (ctx.session.silentSceneChange !== true) {
+        yield common.sendMessageToBeDeletedLater(ctx, 'goals', 'scenes.goals.welcome_text', helpers.getInitKeyboard(ctx))
+    }
+    session.deleteFromSession(ctx, 'silentSceneChange')
+    // yield common.sendMessageToBeDeletedLater(ctx, 'scenes.goals.welcome_more_text')
+    yield common.sendMessageToBeDeletedLater(ctx, 'goals', '', backKeyboard)
 }))
 
 goals.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
@@ -42,10 +48,13 @@ goals.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     session.deleteFromSession(ctx, 'goalsScene')
 }))
 
-goals.action(/newGoalCreate/, actions.newGoalCreateAction)
-goals.action(/goalsListView/, actions.goalsListViewAction)
+goals.action(/newGoalView/, actions.newGoalViewAction)
+goals.action(/goalsListView/, actions.goalsListViewAction, 123)
+goals.action(/editContract/, actions.editContractAction)
 goals.action(/goalView/, actions.goalViewAction)
 goals.action(/newGoalSubmit/, actions.newGoalSubmit)
+
+goals.hears('goalView.+', actions.goalViewAction)
 
 // Обработка нажатий на кнопки, после которых должны быть инициированы вводы с клавиатуры
 goals.action(/.+/, actions.newGoalAnyButtonAction)
@@ -53,7 +62,7 @@ goals.action(/.+/, actions.newGoalAnyButtonAction)
 goals.hears(I18n.match('keyboards.back_keyboard.back'), leave())
 
 // Обработка обычных вводов с клавиатуры
-goals.hears(/.+/, actions.newGoalAnyButtonHandler)
+goals.hears(/.+/, actions.defaultHandler)
 
 goals.command('saveme', leave())
 

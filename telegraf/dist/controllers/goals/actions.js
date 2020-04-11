@@ -20,28 +20,29 @@ const helpers = require("./helpers")
 const logger = __importDefault(require("../../util/logger"))
 const session = __importDefault(require("../../util/session"))
 const Goal = require("../../models/Goal")
+const User = require("../../models/User")
 const req = __importDefault(require("../../util/req"))
 
 /**
  *
  * @param ctx
  */
-const newGoalCreateAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    const newGoalCreateKeyboard = helpers.newGoalCreateKeyboard(ctx)
-    newGoalCreateKeyboard.disable_web_page_preview = true
-    yield ctx.reply(ctx.i18n.t('scenes.goals.create_new.welcome_text'), newGoalCreateKeyboard)
+const newGoalViewAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    const newGoalViewKeyboard = helpers.newGoalViewKeyboard(ctx)
+    newGoalViewKeyboard.disable_web_page_preview = true
+    yield ctx.reply(ctx.i18n.t('scenes.goals.create_new.welcome_text'), newGoalViewKeyboard)
 })
 
-exports.newGoalCreateAction = newGoalCreateAction
+exports.newGoalViewAction = newGoalViewAction
 
 /**
  *
  * @param ctx
  */
-exports.goalsListViewAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
+const goalsListViewAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.fetching'))
     
-    const goals = yield req.make(ctx, 'users/' + ctx.session.SGUser.get('id') + '/goals', {
+    let goals = yield req.make(ctx, 'users/' + ctx.session.SGUser.get('id') + '/goals', {
         method: 'GET'
     }).then(async (response) => {
         const goals = response
@@ -50,49 +51,69 @@ exports.goalsListViewAction = (ctx) => __awaiter(void 0, void 0, void 0, functio
             goal.contract = await req.make(ctx, `goals/${goal.id}/contract`, {
                 method: 'GET'
             }).then((response) => {
-                return Object.assign({}, response, {string: helpers.stringifyOccupation(response)})
+                return Object.assign({}, response, {string: helpers.stringifyContract(response)})
             })
         })
         
         return goals
     })
     
-    yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.welcome_text'))
+    // конвертируем записи в объекты
+    goals = goals.map((goal) => (new Goal.default()).set(goal))
     
     const goalsListKeyboard = helpers.goalsListKeyboard(ctx, goals)
     goalsListKeyboard.disable_web_page_preview = true
-    yield ctx.reply(ctx.i18n.t('scenes.goals.your_goals'), goalsListKeyboard)
+    yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.welcome_text'), goalsListKeyboard)
 })
+
+exports.goalsListViewAction = goalsListViewAction
 
 /**
  *
  * @param ctx
  */
-exports.goalViewAction = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    const data = JSON.parse(ctx.callbackQuery.data)
-    const goal = yield (new Goal.default()).findById(ctx, data.p).then((g) => {return g})
-    
-    const goalViewKeyboard = helpers.goalViewKeyboard(ctx, goal)
-    goalViewKeyboard.disable_web_page_preview = true
+const goalViewAction = async(ctx, goalId) => __awaiter(void 0, void 0, void 0, function* () {
+    let data = (typeof goalId).toLowerCase() === 'string'
+        ? {p: goalId} : (ctx.callbackQuery ? JSON.parse(ctx.callbackQuery.data) : null)
 
-    yield ctx.replyWithHTML(
-        `<i>Наименование:</i>\r\n    <b>${goal.get('title')}</b>`
-        + `\r\n<i>Текст:</i>\r\n    ${goal.get('text')}`
-        + `\r\n<i>Контракт:</i>\r\n    ${goal.get('contract').string}`,
-        goalViewKeyboard
-    )
+    if (data !== null) {
+        const goal = yield (new Goal.default()).findById(ctx, data.p).then((g) => {return g})
+        
+        let owner = ctx.session.SGUser
+        const isMyGoal = (owner.get('id') === goal.get('owner').id)
+        
+        const keyboard = isMyGoal ? helpers.goalMyViewKeyboard(ctx, goal) : helpers.goalAnyViewKeyboard(ctx, goal)
+        keyboard.disable_web_page_preview = true
+        
+        if (!isMyGoal) {
+            owner = yield (new User.default()).findById(ctx, goal.get('owner').id).then((g) => {return g})
+        }
+    
+        yield ctx.replyWithHTML(
+            `<i>Наименование:</i>\r\n    <b>${goal.get('title')}</b>`
+            + `\r\n<i>Текст:</i>\r\n    ${goal.get('text')}`
+            + (isMyGoal ? '' : `\r\n<i>Автор:</i>\r\n    ${owner.get('email').replace(/@.+$/, '')}`)
+        )
+    
+        yield ctx.reply('Действия:', keyboard)
+    } else {
+        logger.default.error('Error setting goal id')
+        yield ctx.reply('Ошибка задания номер цели')
+    }
 })
+exports.goalViewAction = goalViewAction
 
 /**
  *
  * @param ctx
  */
 exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    let goals = null
     if (!ctx.session.newGoalId || typeof ctx.session.newGoalId === 'undefined') {
-        const newGoals = ctx.session.newGoals || {}
+        goals = ctx.session.goals || {}
         session.saveToSession(ctx, 'newGoalId', Math.round(Math.random() * 1000000))
-        newGoals[ctx.session.newGoalId] = new Goal.default()
-        session.saveToSession(ctx, 'newGoals', newGoals)
+        goals[ctx.session.newGoalId] = yield (new Goal.default())
+        session.saveToSession(ctx, 'goals', goals)
     }
     
     switch (ctx.callbackQuery && ctx.callbackQuery.data) {
@@ -106,9 +127,8 @@ exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0,
             ctx.session.state = 'enterNewGoalDescription'
             break
         }
-        case 'setNewGoalOccupation': {
-            ctx.reply(ctx.i18n.t('scenes.goals.set_occupation.text'))
-            ctx.session.state = 'enterNewGoalOccupation'
+        case 'setNewGoalContract': {
+            editContractAction(ctx, goals ? goals[ctx.session.newGoalId] : null)
             break
         }
     }
@@ -117,60 +137,178 @@ exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0,
 /**
  *
  * @param ctx
+ * @param goal
  */
-exports.newGoalAnyButtonHandler = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    const newGoals = ctx.session.newGoals
-    if (!newGoals || typeof newGoals === 'undefined') {
-        return
-    }
-    switch (ctx.session.state) {
-        case 'enterNewGoalTitle': {
-            logger.default.debug(ctx, 'Setting new goal title to', ctx.match.input)
-            newGoals[ctx.session.newGoalId].set({title: ctx.match.input})
-            newGoals[ctx.session.newGoalId].updateReadyState(ctx)
-            session.saveToSession(ctx, 'newGoals', newGoals)
-            break
-        }
-        case 'enterNewGoalDescription': {
-            logger.default.debug(ctx, 'Setting new goal description to', ctx.match.input)
-            newGoals[ctx.session.newGoalId].set({text: ctx.match.input})
-            newGoals[ctx.session.newGoalId].updateReadyState(ctx)
-            session.saveToSession(ctx, 'newGoals', newGoals)
-            break
-        }
-        case 'enterNewGoalOccupation': {
-            // Валидируем введенную строку
-            let correct = helpers.validateOccupationFormat(ctx, ctx.match.input)
-            if (correct !== null) {
-                logger.default.debug(ctx, 'Setting new goal occupation to', ctx.match.input)
-    
-                let contract = newGoals[ctx.session.newGoalId].get('contract')
-    
-                contract.set(correct)
-                contract.set({occupation: ctx.match.input})
-    
-                newGoals[ctx.session.newGoalId].set({contract: contract})
-                newGoals[ctx.session.newGoalId].get('contract').updateReadyState(ctx)
-                newGoals[ctx.session.newGoalId].updateReadyState(ctx)
-                session.saveToSession(ctx, 'newGoals', newGoals)
-            } else {
-                newGoals[ctx.session.newGoalId].get('contract').updateReadyState(ctx)
-                newGoals[ctx.session.newGoalId].updateReadyState(ctx)
-                logger.default.error(ctx, 'Error setting new goal occupation. Parse error:', ctx.match.input)
-                yield ctx.reply('Некорректное значение параметра занятости')
+const editContractAction = async(ctx, goal) => __awaiter(void 0, void 0, void 0, function* () {
+    let data = null
+    if ((typeof goal).toLowerCase() === 'string') {
+        data = {p: goal}
+    } else if (ctx.callbackQuery) {
+        if (ctx.callbackQuery.data.match(/^\{.*\}$/)) {
+            try {
+                data = JSON.parse(ctx.callbackQuery.data)
+            } catch (e) {
+                console.error(e)
             }
-            break
         }
     }
     
-    newGoalCreateAction(ctx)
+    if (data !== null) {
+        goal = yield (new Goal.default()).findById(ctx, data.p)
+        ctx.session.updatingGoalId = goal.get('id')
+        ctx.session.state = 'enterUpdatingGoalContract'
+    } else {
+        ctx.session.state = 'enterNewGoalContract'
+    }
+    let currentContract = null
+    
+    if (goal !== null) {
+        currentContract = goal.get('contract').toString()
+    }
+
+    ctx.replyWithHTML(`Текущий контракт: <code>${currentContract || 'не определен'}</code>\r\n\r\n` + ctx.i18n.t('scenes.goals.set_occupation.text'))
+})
+
+exports.editContractAction = editContractAction
+
+/**
+ *
+ * @param ctx
+ * @param goal
+ */
+const setContractInGoalObject = async(ctx, goal, text) => __awaiter(void 0, void 0, void 0, function* () {
+    // Валидируем введенную строку
+    let correct = helpers.validateContractFormat(ctx, text)
+
+    if (correct !== null) {
+        logger.default.debug(ctx, 'Setting new goal occupation to', text)
+    
+        let contract = goal.get('contract')
+        contract.set(correct)
+        contract.set({occupation: text})
+    
+        goal.set({contract: contract})
+    
+        goal.get('contract').updateReadyState(ctx)
+        goal.updateReadyState(ctx)
+    
+        const currentGoals = ctx.session.goals
+        if (currentGoals) {
+            currentGoals[ctx.session.newGoalId] = goal
+            session.saveToSession(ctx, 'goals', currentGoals)
+        }
+        
+        return true
+    } else {
+        logger.default.error(ctx, 'Error setting new goal occupation. Parse error:', text)
+
+        yield ctx.reply('Некорректное значение параметра занятости')
+        
+        return false
+    }
+})
+
+/**
+ *
+ * @param ctx
+ */
+exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    const text = ctx.match.input
+    logger.default.debug(ctx, 'Goals default Handler:', text)
+    
+    switch (true) {
+
+        // Если ввели в консоли /viewgoal XX или /goalView XX - идем в просмотр цели
+        case text.match(/^\/?(viewgoal|goalView)\s*\d+$/) !== null: {
+            const params = text.match(/^\/?(viewgoal|goalView)\s*(\d+)$/)
+            logger.default.debug(ctx, 'View goal', params[2])
+            return goalViewAction(ctx, params[2])
+        }
+    
+        // Если ввели в консоли /newgoal - идем в форму создания новой цели
+        case text.match(/^\/?newgoal/) !== null: {
+            logger.default.debug(ctx, 'New goal')
+            return newGoalViewAction(ctx)
+        }
+    
+        // Если ввели в консоли /newgoal - идем в форму создания новой цели
+        case text.match(/^\/?editgoals/) !== null: {
+            logger.default.debug(ctx, 'List and edit goals')
+            return goalsListViewAction(ctx)
+        }
+    
+        // остальные введенные строки
+        default: {
+            
+            logger.default.debug(ctx, 'Короткие команды не распознаны, определяем состояние: ', ctx.session.state)
+            
+            let goal = null
+            let currentGoals = null
+            if (ctx.session.state.match(/NewGoal/)) {
+                currentGoals = ctx.session.goals
+                goal = currentGoals[ctx.session.newGoalId]
+            } else if (ctx.session.state.match(/UpdatingGoal/)) {
+                goal = yield (new Goal.default()).findById(ctx, ctx.session.updatingGoalId)
+            }
+            if (!goal) {
+                logger.default.debug(ctx, 'Ошибка определения объекта цели')
+            }
+            switch (ctx.session.state) {
+
+                // Ввод параметров для апдейта существующей цели
+
+                case 'enterUpdatingGoalContract': {
+                    const ret = yield setContractInGoalObject(ctx, goal, text)
+                    if (ret !== false) {
+                        goal.get('contract').save(ctx)
+                        yield ctx.reply('Данные контракта сохранены')
+                    }
+                    break
+                }
+    
+                // Ввод параметров для добавления новой цели
+
+                case 'enterNewGoalTitle': {
+                    logger.default.debug(ctx, 'Setting new goal title to', text)
+                    goal.set({title: text})
+                    goal.updateReadyState(ctx)
+                    if (goal !== false) {
+                        currentGoals[ctx.session.newGoalId] = goal
+                        session.saveToSession(ctx, 'goals', currentGoals)
+                    }
+    
+                    newGoalViewAction(ctx)
+                    break
+                }
+                case 'enterNewGoalDescription': {
+                    logger.default.debug(ctx, 'Setting new goal description to', text)
+                    goal.set({text: text})
+                    goal.updateReadyState(ctx)
+                    if (goal !== false) {
+                        currentGoals[ctx.session.newGoalId] = goal
+                        session.saveToSession(ctx, 'goals', currentGoals)
+                    }
+    
+                    newGoalViewAction(ctx)
+                    break
+                }
+                case 'enterNewGoalContract': {
+                    yield setContractInGoalObject(ctx, goal, text)
+    
+                    // Снова показываем форму вводимых параметров цели
+                    newGoalViewAction(ctx)
+                    break
+                }
+            }
+        }
+    }
 })
 
 exports.newGoalSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
     let newGoal
     
-    if (typeof ctx.session.newGoalId !== 'undefined' && typeof ctx.session.newGoals !== 'undefined') {
-        newGoal = ctx.session.newGoals[ctx.session.newGoalId]
+    if (typeof ctx.session.newGoalId !== 'undefined' && typeof ctx.session.goals !== 'undefined') {
+        newGoal = ctx.session.goals[ctx.session.newGoalId]
     }
     
     if (!newGoal) {
@@ -180,7 +318,7 @@ exports.newGoalSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function
     }
     
     newGoal.updateReadyState(ctx)
-    console.log(newGoal)
+
     if (newGoal.get('ready') !== true) {
         logger.default.error('new goal object isn\'t ready')
         ctx.reply('Параметры цели заданы не полностью')

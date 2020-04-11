@@ -34,7 +34,7 @@ const mongooseOptions = {
     authSource: 'sharedgoals',
     replicaSet: 'rs01',
     ssl: true,
-    sslCA: fs.readFileSync('/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt')
+    sslCA: fs.readFileSync(process.env.SSL_CERTIFICATE)
 };
 
 // const config = {

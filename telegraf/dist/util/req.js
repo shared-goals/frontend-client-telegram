@@ -22,7 +22,7 @@ const request = __importDefault(require("request-promise"))
 /**
  * Вспомогательная функция для использования внешних и внутренних API
  **/
-async function make(ctx, method, args = {}) {
+async function make(ctx, url, args = {}) {
     return new Promise((resolve, reject) => {
         args.telegram_id = ctx.from.id
         // if (ctx.session.SGUser && typeof ctx.session.SGUser !== 'undefined') {
@@ -34,11 +34,11 @@ async function make(ctx, method, args = {}) {
             } : null,
             rejectUnauthorized: false,
             method: args.method || 'POST',
-            url: `${process.env.SG_API}/${method}`,
+            url: `${process.env.SG_API}/${url}`,
             form: args
         }
 
-        logger.default.debug(ctx, method + ' ' + JSON.stringify(opt))
+        logger.default.debug(ctx, url + ' ' + JSON.stringify(opt))
 
         request.default(opt, (error, response, body) => {
             if (!error) {

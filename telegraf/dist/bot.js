@@ -41,17 +41,13 @@ const Session = __importDefault(require("telegraf/session"))
 
 // DB, http
 const reqPromise = __importDefault(require("request-promise"))
-const request = __importDefault(require("./util/req"))
-
-// Models
-const User = __importDefault(require("./models/User"))
 
 // Utils
 const logger = __importDefault(require("./util/logger"))
 const notifier = require("./util/notifier")
 const errorHandler = __importDefault(require("./util/error-handler"))
 const keyboards = require("./util/keyboards")
-const language = require("./util/language")
+const session = require("./util/session")
 
 // Controllers
 const goalsScene = __importDefault(require("./controllers/goals"))
@@ -100,6 +96,47 @@ bot.use(stage.middleware())
 // Подключаем связь с пользователем из внешнего API
 bot.use(userInfo.getUserInfo)
 
+// Обработчик ошибок
+bot.catch((error) => {
+    logger.default.error(undefined, 'Global error has happened, %O', error)
+})
+
+
+// ==============================================
+// основные сцены/обработчики
+
+
+// Цели
+bot.hears(I18n.match('keyboards.main_keyboard.goals'), updater.updateUserTimestamp, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield ctx.scene.enter('goals')
+})))
+
+// Настройки
+bot.hears(I18n.match('keyboards.main_keyboard.settings'), updater.updateUserTimestamp, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield ctx.scene.enter('settings')
+})))
+
+// О сервисе
+bot.hears(I18n.match('keyboards.main_keyboard.about'), updater.updateUserTimestamp, errorHandler.default(aboutScene.default))
+
+// Назад
+bot.hears(I18n.match('keyboards.back_keyboard.back'), errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    // If this method was triggered, it means that bot was updated when user was not in the main menu..
+    logger.default.debug(ctx, 'Return to the main menu with the back button')
+    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
+    yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
+})))
+
+
+// ==============================================
+// специальные обработчики
+
+
+// По /admin Грузим сцену админ-действий
+bot.hears(/(.*admin)/, adminConsole.isAdmin, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield ctx.scene.enter('admin')
+})))
+
 // Определяем команду ресета
 bot.command('saveme', (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     logger.default.debug(ctx, 'User uses /saveme command')
@@ -112,42 +149,42 @@ bot.start(errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, functi
     return ctx.scene.enter('start')
 })))
 
-// Основные кнопки
-bot.hears(I18n.match('keyboards.main_keyboard.goals'), updater.updateUserTimestamp, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield ctx.scene.enter('goals')
-})))
-bot.hears(I18n.match('keyboards.main_keyboard.settings'), updater.updateUserTimestamp, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield ctx.scene.enter('settings')
-})))
-bot.hears(I18n.match('keyboards.main_keyboard.about'), updater.updateUserTimestamp, errorHandler.default(aboutScene.default))
-bot.hears(I18n.match('keyboards.back_keyboard.back'), errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    // If this method was triggered, it means that bot was updated when user was not in the main menu..
-    logger.default.debug(ctx, 'Return to the main menu with the back button')
-    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
-    yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
-})))
-
-// По /admin Грузим сцену админ-действий
-bot.hears(/(.*admin)/, adminConsole.isAdmin, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield ctx.scene.enter('admin')
-})))
-
 // Все остальные команды
 bot.hears(/(.*?)/, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    logger.default.debug(ctx, 'Default handler has fired')
-    const user = yield (new User.default).findById(ctx, ctx.from.id)
-    logger.default.debug(user.toJSON())
-    yield language.updateLanguage(ctx, user.language)
-    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
-    yield ctx.reply(ctx.i18n.t('other.default_handler'), mainKeyboard)
+    const text = ctx.match.input
+    logger.default.debug(ctx, 'Default handler has fired:', text)
+
+    // Собираем короткие команды из каждой сцены, чтобы направить в соответствующую сцены на обработку
+    const shortCommands = {
+        goals: goalsScene.shortCommands,
+        // contracts: contractsScene.shortCommands
+    }
+
+    // Ищем введенную команду через соответствие регулярке по всем возможным короткимм командам каждой сцены
+    let handler = null
+    Object.keys(shortCommands).forEach((scene) => {
+        const re = new RegExp('\\/?(' + shortCommands[scene].join('|') + ')(\\s|$)')
+        if (re.test(text) === true) {
+            logger.default.debug(ctx, 'Detected required scene:', scene, ', redirect to defaultHandler')
+            const actions = require(`./controllers/${scene}/actions`)
+            ctx.scene.enter(scene)
+            session.saveToSession(ctx, 'silentSceneChange', true)
+            handler = actions.defaultHandler
+        }
+    })
+    
+    // Если в какой-то сцене команда найдена - идем в ее defaultHandler
+    if (handler !== null && typeof handler === 'function') {
+        handler(ctx)
+    } else {
+        // Иначе выводис сообщение о неправильнйо команде
+        const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
+        yield ctx.reply(ctx.i18n.t('other.default_handler'), mainKeyboard)
+    }
 }))
 
-// Обработчик ошибок
-bot.catch((error) => {
-    logger.default.error(undefined, 'Global error has happened, %O', error)
-})
 
-// setInterval(notifier.checkUnreleasedMovies, 86400000)
+
 
 // стартуем бота в нужном режиме
 process.env.NODE_ENV === 'production' ? startProdMode(bot) : startDevMode(bot)
@@ -169,7 +206,7 @@ function startProdMode(bot) {
             key: fs.default.readFileSync(process.env.PATH_TO_KEY),
             cert: fs.default.readFileSync(process.env.PATH_TO_CERT)
         }
-        yield bot.telegram.setWebhook(`https://dmbaranov.io:${process.env.WEBHOOK_PORT}/${process.env.TELEGRAM_TOKEN}`, {
+        yield bot.telegram.setWebhook(`https://ngrok.io:${process.env.WEBHOOK_PORT}/${process.env.TELEGRAM_TOKEN}`, {
             source: 'cert.pem'
         })
         yield bot.startWebhook(`/${process.env.TELEGRAM_TOKEN}`, tlsOptions, +process.env.WEBHOOK_PORT)

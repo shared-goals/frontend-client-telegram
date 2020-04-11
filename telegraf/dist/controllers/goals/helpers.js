@@ -13,8 +13,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const Telegraf = require("telegraf")
-const lodash_1 = require("lodash")
-const session = require("../../util/session")
 const Goal = require("../../models/Goal")
 
 const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -28,7 +26,7 @@ const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'satur
  *   10h every week
  * @param txt
  */
-const validateOccupationFormat = (ctx, txt) => {
+const validateContractFormat = (ctx, txt) => {
     const mins_variants = ('m|min|mins|minutes|' + ctx.i18n.t('min_plur')).split('|')
     const hours_variants = ('h|hour|hours|' + ctx.i18n.t('hour_plur')).split('|')
 
@@ -49,20 +47,20 @@ const validateOccupationFormat = (ctx, txt) => {
     let data = re.exec(txt)
     let ret
     if (data !== null) {
-        ret = parseOccupation(ctx, data.slice(1, 5))
+        ret = parseContractText(ctx, data.slice(1, 5))
     } else {
         ret = data
     }
     return ret
 }
-exports.validateOccupationFormat = validateOccupationFormat
+exports.validateContractFormat = validateContractFormat
 
 /**
  * Парсит исходный формат занятости и возвращает форматированный для хранения в БД
  * @param data введенный формат занятости. Пример: Array ['20', 'min', 'every', 'mon,sat]
  * @returns {{}}
  */
-const parseOccupation = (ctx, data) => {
+const parseContractText = (ctx, data) => {
     const mins_variants = ('m|min|mins|minutes|' + ctx.i18n.t('min_plur')).split('|')
     const hours_variants = ('h|hour|hours|' + ctx.i18n.t('hour_plur')).split('|')
 
@@ -104,21 +102,21 @@ const parseOccupation = (ctx, data) => {
     return ret
 }
 
-exports.parseOccupation = parseOccupation
+exports.parseOccupation = parseContractText
 
 /**
  * Возвращает строку параметров занятости по объекту их данных
  * @param data
  * @returns {string}
  */
-const stringifyOccupation = (data) => {
+const stringifyContract = (data) => {
     return (data && data.hasOwnProperty('duration') && data.hasOwnProperty('duration') ?
         ((data.duration >= 60 ? (data.duration / 60) + 'h' : data.duration + 'min')
             + ' every ' + (data.week_days.length > 0 ? data.week_days.join(',') : data.month_days.join(',')))
         : 'не определен')
 }
 
-exports.stringifyOccupation = stringifyOccupation
+exports.stringifyContract = stringifyContract
 
 /**
  *
@@ -127,32 +125,59 @@ exports.stringifyOccupation = stringifyOccupation
  */
 function getInitKeyboard(ctx) {
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
-        m.callbackButton(`Новая цель`, JSON.stringify({ a: 'newGoalCreate' }), false),
-        m.callbackButton(`Список целей`, JSON.stringify({ a: 'goalsListView' }), false)
+        [
+            m.callbackButton(`Новая цель`, JSON.stringify({ a: 'newGoalView' }), false),
+            m.callbackButton(`Мои цели`, JSON.stringify({ a: 'goalsListView' }), false),
+        ],
+        [
+            m.callbackButton(`Присоединиться к чьей-то цели`, JSON.stringify({ a: 'joinGoalView' }), false)
+        ],
+        [
+            m.callbackButton(`Мои контракты`, JSON.stringify({ a: 'contractsListView' }), false),
+            m.callbackButton(`Отработать контракт`, JSON.stringify({ a: 'setCommitView' }), false)
+        ]
     ], {}))
 }
 
 exports.getInitKeyboard = getInitKeyboard
 
 /**
+ * Клавиатура с кнопками для режима просмотра своей цели
  *
  * @param ctx
  * @param goal
  * @returns {*|ExtraEditMessage}
  */
-function goalViewKeyboard(ctx, goal) {
+function goalMyViewKeyboard(ctx, goal) {
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
         [
-            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.set_contract.button_text'), JSON.stringify({ a: 'setContract', p: goal.id }), false),
-            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.set_commit.button_text'), JSON.stringify({ a: 'setCommit', p: goal.id }), false)
-        ],
-        [
-            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.back.button_text'), 'goalsListView', false)
+            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.edit_contract.button_text'), JSON.stringify({ a: 'editContract', p: goal.get('id') }), false),
+            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.set_commit.button_text'), JSON.stringify({ a: 'setCommit', p: goal.get('id') }), false)
         ]
     ], {}))
 }
 
-exports.goalViewKeyboard = goalViewKeyboard
+exports.goalMyViewKeyboard = goalMyViewKeyboard
+
+/**
+ * Клавиатура с кнопками для режима просмотра чужой цели
+ *
+ * @param ctx
+ * @param goal
+ * @returns {*|ExtraEditMessage}
+ */
+function goalAnyViewKeyboard(ctx, goal) {
+    return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
+        [
+            goal.get('contract') !== null
+                ? m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.view_contract.button_text'), JSON.stringify({ a: 'setContract', p: goal.get('id') }), false)
+                : m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.join_goal.button_text'), JSON.stringify({ a: 'joinContract', p: goal.get('id') }), false),
+            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.set_commit.button_text'), JSON.stringify({ a: 'setCommit', p: goal.get('id') }), false)
+        ]
+    ], {}))
+}
+
+exports.goalAnyViewKeyboard = goalAnyViewKeyboard
 
 /**
  *
@@ -163,46 +188,18 @@ exports.goalViewKeyboard = goalViewKeyboard
 function goalsListKeyboard(ctx, goals) {
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard(
         (goals || []).map((goal) => {
-            return [m.callbackButton(goal.title, JSON.stringify({ a: 'goalView', p: goal.id }), false)]
-        }).concat([
-            [m.callbackButton(ctx.i18n.t('scenes.back.button_text'), ctx.i18n.t('keyboards.main_keyboard.goals'), false)]
-        ]), {}))
+            return [m.callbackButton(goal.get('title'), JSON.stringify({ a: 'goalView', p: goal.get('id') }), false)]
+        }), {}))
 }
 
 exports.goalsListKeyboard = goalsListKeyboard
-
-/**
- * Send message and saving it to the session. Later it can be deleted.
- * Used to avoid messages duplication
- * @param ctx - telegram context
- * @param translationKey - translation key
- * @param extra - extra for the message, e.g. keyboard
- */
-function sendMessageToBeDeletedLater(ctx, translationKey, extra) {
-    return __awaiter(this, void 0, void 0, function* () {
-        ctx.webhookReply = false
-        const message = yield ctx.reply(ctx.i18n.t(translationKey), extra)
-        const messagesToDelete = lodash_1.get(ctx.session, 'goalsScene.messagesToDelete', [])
-        session.saveToSession(ctx, 'goalsScene', {
-            messagesToDelete: [
-                ...messagesToDelete,
-                {
-                    chatId: message.chat.id,
-                    messageId: message.message_id
-                }
-            ]
-        })
-    })
-}
-
-exports.sendMessageToBeDeletedLater = sendMessageToBeDeletedLater
 
 /**
  *
  * @param ctx
  * @returns {*|ExtraEditMessage}
  */
-function newGoalCreateKeyboard(ctx) {
+function newGoalViewKeyboard(ctx) {
     const defaults = {
         icons: {
             check: {
@@ -212,21 +209,20 @@ function newGoalCreateKeyboard(ctx) {
         }
     }
     let newGoal
-    if (typeof ctx.session.newGoalId !== 'undefined' && typeof ctx.session.newGoals !== 'undefined') {
-        newGoal = ctx.session.newGoals[ctx.session.newGoalId]
-        console.log(newGoal)
+    if (typeof ctx.session.newGoalId !== 'undefined' && typeof ctx.session.goals !== 'undefined') {
+        newGoal = ctx.session.goals[ctx.session.newGoalId]
     } else {
         newGoal = new Goal.default()
     }
-    console.log(`\r\n\r\n` + JSON.stringify(newGoal) + `\r\n\r\n`, !newGoal, newGoal.get('contract'), newGoal.get('contract').get('occupation'), newGoal.get('contract').get('occupation') === null, newGoal.get('contract').get('occupation') === '')
+    // console.log(`\r\n\r\n` + JSON.stringify(newGoal) + `\r\n\r\n`, !newGoal, newGoal.get('contract'), newGoal.get('contract').get('occupation'), newGoal.get('contract').get('occupation') === null, newGoal.get('contract').get('occupation') === '')
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
         [
             m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('title') === null || newGoal.get('title') === '' ? 'empty' : 'checked']
                 + ctx.i18n.t('scenes.goals.set_title.button_text'), 'setNewGoalTitle', false),
             m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('text') === null || newGoal.get('text') === '' ? 'empty' : 'checked']
                 + ctx.i18n.t('scenes.goals.set_description.button_text'), 'setNewGoalDescription', false),
-            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('contract').get('occupation') === null || newGoal.get('contract').get('occupation') === '' ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_occupation.button_text'), 'setNewGoalOccupation', false)
+            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('contract').get('ready') === false ? 'empty' : 'checked']
+                + ctx.i18n.t('scenes.goals.set_occupation.button_text'), 'setNewGoalContract', false)
         ],
         [
             m.callbackButton(ctx.i18n.t('scenes.submit.button_text'), 'newGoalSubmit', false),
@@ -235,4 +231,4 @@ function newGoalCreateKeyboard(ctx) {
     ], {}))
 }
 
-exports.newGoalCreateKeyboard = newGoalCreateKeyboard;
+exports.newGoalViewKeyboard = newGoalViewKeyboard;

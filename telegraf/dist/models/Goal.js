@@ -42,6 +42,7 @@ function Goal (data) {
     
     self.set = (data) => {
         self.attributes = Object.assign({}, self.attributes, data)
+        return self
     }
     
     self.get = (key) => {
@@ -52,6 +53,11 @@ function Goal (data) {
         return JSON.stringify(self.attributes)
     }
     
+    /**
+     *
+     * @param ctx
+     * @param id
+     */
     self.findById = async(ctx, id) => __awaiter(void 0, void 0, void 0, function* () {
         // Отправляем запрос на получение информаии о цели
         yield req.make(ctx, 'goals/' + id, {
@@ -60,19 +66,15 @@ function Goal (data) {
             self.set(response)
         })
     
-        const contractData = yield req.make(ctx, `goals/${self.get('id')}/contract`, {
-            method: 'GET'
-        }).then((response) => {
-            return Object.assign({}, response, {string: helpers.stringifyOccupation(response)})
+        return self.set({
+            contract: yield (new Contract.default()).findByGoalAndOwner(ctx, id, ctx.session.SGUser.get('id'))
         })
-        const contract = new Contract.default()
-        contract.set(contractData)
-        
-        self.set({contract: contractData})
-        
-        return self
     })
     
+    /**
+     *
+     * @param ctx
+     */
     self.updateReadyState = (ctx) => {
         self.set({ready:
             self.get('title') !== null && self.get('title') !== '' &&
@@ -80,6 +82,21 @@ function Goal (data) {
             self.get('contract').get('ready') === true
         })
     }
+    
+    /**
+     *
+     * @param ctx
+     */
+    self.save = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
+        if (self.get('id') !== null) {
+            // Отправляем запрос на получение информаии о цели
+            yield req.make(ctx, 'goals/' + self.get('id'), Object.assign({}, self.get(), {
+                method: 'PUT',
+            })).then( (response) => {
+                self.set(response)
+            })
+        }
+    })
     
     self.set(data)
     
