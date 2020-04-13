@@ -46,13 +46,14 @@ exports.newGoalViewAction = newGoalViewAction
  * @param user User
  */
 const goalsListViewAction = (ctx, user) => __awaiter(void 0, void 0, void 0, function* () {
-    yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.fetching') + (' ' + typeof user === 'object' ? user.get('username') : ''))
+    const settedUser = (typeof user === 'object' && !user.hasOwnProperty('query'))
+    yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.fetching') + (settedUser ? ' ' + user.get('username') : ''))
     
     // достаем объекты всех записей текущего юзера
-    let goals = yield (new Goal.default()).findAll(ctx, typeof user === 'object' ? user.get('id') : null)
+    let goals = yield (new Goal.default()).findAll(ctx, settedUser ? user.get('id') : null)
     
     if (!goals || goals.length === 0) {
-        ctx.reply((typeof user === 'object'
+        ctx.reply((settedUser
             ? 'У ' + user.get('email').replace(/@.+/, '') + ' еще нет целей.'
             : 'У вас еще нет целей. Пора их создать'))
     } else {

@@ -102,7 +102,7 @@ goals.hears(I18n.match('keyboards.back_keyboard.back'), leave())
 // Обработка обычных вводов с клавиатуры
 goals.hears(/.+/, actions.defaultHandler)
 
-goals.command('saveme', leave())
+// goals.command('saveme', leave())
 goals.command('leave', leave())
 
 

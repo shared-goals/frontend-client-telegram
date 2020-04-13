@@ -86,7 +86,7 @@ contracts.hears(I18n.match('keyboards.back_keyboard.back'), leave())
 contracts.hears(/.+/, actions.defaultHandler)
 
 // contracts.command('saveme', leave())
-
+contracts.command('leave', leave())
 
 logger.default.debug(undefined, '🔹️  Contracts controller initiated')
 

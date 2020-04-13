@@ -70,7 +70,6 @@ exports.goalAnyViewKeyboard = goalAnyViewKeyboard
  * @returns {*|ExtraEditMessage}
  */
 function goalsListKeyboard(ctx, goals) {
-    console.log(goals)
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard(
         (goals || []).map((goal) => {
             return [m.callbackButton(goal.get('title') + (goal.get('code') ? ' (' + goal.get('code') + ')' : ''),

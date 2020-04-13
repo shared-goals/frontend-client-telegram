@@ -58,7 +58,7 @@ const contractViewAction = async(ctx, contractData) => __awaiter(void 0, void 0,
     let data = (typeof contractData).toLowerCase() === 'string'
         ? {p: contractData} : (ctx.callbackQuery ? JSON.parse(ctx.callbackQuery.data) : null)
 
-    console.log(contractData, data)
+    // console.log(contractData, data)
     
     if (data !== null) {
         const contract = yield (new Contract.default()).findById(ctx, data.p).then((g) => {return g})
