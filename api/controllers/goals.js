@@ -10,7 +10,9 @@ const Contract = require('../models/contract');
  *     Goal: 
  *       properties:
  *         id: 
- *           type: number
+ *           type: string
+ *         code:
+ *           type: string
  *         title:
  *           type: string
  *         owner:
@@ -26,21 +28,23 @@ const Contract = require('../models/contract');
  *     GoalPartial:
  *       properties:
  *         id:
- *           type: number
+ *           type: string
+ *         code:
+ *           type: string
  *         title:
  *           type: string
  *         owner:
  *           type: object
  *           properties:
  *             id:
- *               type: number
+ *               type: string
  *           required:
  *             - id
  *         contract:
  *           type: object
  *           properties:
  *             id:
- *               type: number
+ *               type: string
  *         text:
  *           type: string
  *         archived:
@@ -100,7 +104,9 @@ let controller = {
         try{
             const user = await User.findById(ctx.request.body.owner.id);
             if(!user) return ctx.status = 400;
+            console.log(ctx.request.body.code || '')
             let goal = new Goal({
+                code: ctx.request.body.code || '',
                 title: ctx.request.body.title,
                 owner: user._id,
                 text: ctx.request.body.text
@@ -190,7 +196,12 @@ let controller = {
             const user = await User.findById(ctx.request.body.owner.id);
             if(!user) return ctx.body = 400;
             const goal = ctx.goal;
-            goal.title = ctx.request.body.title;
+            if (ctx.request.body.code) {
+                goal.code = ctx.request.body.code;
+            }
+            if (ctx.request.body.title) {
+                goal.title = ctx.request.body.title;
+            }
             goal.owner = user._id;
             await goal.save();
             await goal.populate('owner').execPopulate();

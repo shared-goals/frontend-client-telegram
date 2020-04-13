@@ -35,10 +35,10 @@ commitSchema.method('toClient', function() {
     return obj;
 });
 
-commitSchema.plugin(AutoIncrement.plugin, {
-    model: 'Commit',
-    startAt: 1,
-});
+// commitSchema.plugin(AutoIncrement.plugin, {
+//     model: 'Commit',
+//     startAt: 1,
+// });
 
 Mongoose.model('Commit', commitSchema);
 

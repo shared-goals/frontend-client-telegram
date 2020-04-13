@@ -10,10 +10,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 }
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod }
+}
+
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const string_similarity_1 = require("string-similarity")
 const lodash = require("lodash")
+
+const logger = __importDefault(require("./logger"))
 const session = require("./session")
 
 /**
@@ -81,3 +87,26 @@ function checkStringSimilarity(a, b) {
 }
 
 exports.checkStringSimilarity = checkStringSimilarity;
+
+/**
+ *
+ * @param ctx
+ * @param text
+ * @param shortcuts
+ * @returns {boolean}
+ */
+const checkShortcuts = async(ctx, text, shortcuts) => __awaiter(this, void 0, void 0, function* () {
+    const keys = Object.keys(shortcuts || {})
+    let pattern
+    let ret
+    for (let i = 0; i < keys.length; i++) {
+        pattern = keys[i]
+        if (text.match(new RegExp(pattern)) !== null) {
+            logger.default.debug(ctx, 'Detected shortcut:', pattern, ', calling handler')
+            ret = yield shortcuts[pattern].handler(ctx, text)
+        }
+    }
+    return ret
+})
+
+exports.checkShortcuts = checkShortcuts;

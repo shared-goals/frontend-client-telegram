@@ -1,8 +1,11 @@
 const Mongoose = require('mongoose');
-const AutoIncrement = require('mongoose-auto-increment');
+// const AutoIncrement = require('mongoose-auto-increment');
 
 const goalSchema = new Mongoose.Schema(
     {
+        code: {
+            type: String
+        },
         title: {
             type: String,
             required: true,
@@ -47,10 +50,10 @@ goalSchema.method('toClient', function() {
     return obj;
 });
 
-goalSchema.plugin(AutoIncrement.plugin, {
-    model: 'Goal',
-    startAt: 1,
-});
+// goalSchema.plugin(AutoIncrement.plugin, {
+//     model: 'Goal',
+//     startAt: 1,
+// });
 
 Mongoose.model('Goal', goalSchema);
 

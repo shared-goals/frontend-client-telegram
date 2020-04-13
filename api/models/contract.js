@@ -1,10 +1,10 @@
 const Mongoose = require('mongoose');
-const AutoIncrement = require('mongoose-auto-increment');
+// const AutoIncrement = require('mongoose-auto-increment');
 
 const contractSchema = new Mongoose.Schema(
     {
         goal: {                 // Цель, к которой прикреплен контракт
-            type: Number,
+            type: String,
             required: true,
             ref: 'Goal'
         },
@@ -45,7 +45,10 @@ contractSchema.method('toClient', function() {
         email: obj.owner.email,
     }
     obj.goal = {
-        id: obj.goal ? obj.goal._id : null
+        id: obj.goal ? obj.goal._id : null,
+        code: obj.goal.code,
+        title: obj.goal.title,
+        owner: obj.goal.owner
     }
 
     // Delete fields
@@ -62,10 +65,10 @@ contractSchema.method('toClient', function() {
 //     return {t: 5};
 // });
 
-contractSchema.plugin(AutoIncrement.plugin, {
-    model: 'Contract',
-    startAt: 1,
-});
+// contractSchema.plugin(AutoIncrement.plugin, {
+//     model: 'Contract',
+//     startAt: 1,
+// });
 
 Mongoose.model('Contract', contractSchema);
 

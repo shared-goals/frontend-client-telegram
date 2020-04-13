@@ -19,6 +19,7 @@ Object.defineProperty(exports, "__esModule", { value: true })
 const logger = __importDefault(require("../util/logger"))
 const helpers = __importDefault(require("../controllers/goals/helpers"))
 const req = __importDefault(require("../util/req"))
+const User = __importDefault(require("./User"))
 const Contract = __importDefault(require("./Contract"))
 
 /**
@@ -31,6 +32,7 @@ function Goal (data) {
     
     self.attributes = {
         owner: null,
+        code: '',
         title: '',
         text: '',
         contract: new Contract.default(),
@@ -54,6 +56,35 @@ function Goal (data) {
     }
     
     /**
+     * Возвращает объект всех целей выбранного или текущего пользователя
+     *
+     * @param ctx
+     * @returns {*}
+     */
+    self.findAll = async(ctx, user_id) => __awaiter(void 0, void 0, void 0, function* () {
+        return yield req.make(ctx, 'users/' + (user_id || ctx.session.SGUser.get('id')) + '/goals', {
+            method: 'GET'
+        }).then(async(response) => __awaiter(void 0, void 0, void 0, function* () {
+            let goals = [], goal
+            if (!response || response.length === 0) {
+                logger.default.error(ctx, 'Нет целей')
+                return null
+            } else {
+                for (let i = 0; i < response.length; i++) {
+                    goal = (new Goal()).set(response[i])
+                    goal.set({
+                        contract: yield (new Contract.default())
+                            .findByGoalAndOwner(ctx, goal.get('id'), ctx.session.SGUser.get('id'))
+                    })
+                    goals.push(goal)
+                }
+            }
+            return goals
+        }))
+    })
+    
+    /**
+     * Возвращает объект цели по ее идентификатору
      *
      * @param ctx
      * @param id
@@ -72,6 +103,34 @@ function Goal (data) {
     })
     
     /**
+     * Возвращает объект цели по ее пользователю и коду
+     *
+     * @param ctx
+     * @param data
+     */
+    self.findByOwnerAndCode = async(ctx, data) => __awaiter(void 0, void 0, void 0, function* () {
+        let goals = []
+        const owner = yield (new User.default().findByEmail(ctx, data.owner + '@t.me'))
+
+        if (owner !== null) {
+            goals = yield self.findAll(ctx, owner.id)
+            goals = (goals || []).filter((goal) => {
+                return goal.get('code') === data.code
+            })
+        } else {
+            logger.default.error(ctx, 'Ошибка. Пользователь ' + data.owner + ' не найден')
+            ctx.reply('Ошибка. Пользователь ' + data.owner + ' не найден')
+        }
+
+        if (goals && goals.length === 1) {
+            return goals[0]
+        } else {
+            logger.default.error(ctx, 'Ошибка получения целей по параметрам', JSON.stringify(data))
+            return null
+        }
+    })
+    
+    /**
      *
      * @param ctx
      */
@@ -84,18 +143,34 @@ function Goal (data) {
     }
     
     /**
-     *
+     * Сохранение объекта в БД. Апдейт существующей записи или вставка новой
      * @param ctx
      */
     self.save = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
-        if (self.get('id') !== null) {
+        // Определяем данные для вставки или апдейта
+        const data = self.get()
+        data.owner = { id: ctx.session.SGUser.get('id')}
+
+        // Если был определен айдишник - это апдейт
+        if (self.get('id') !== null && typeof self.get('id') !== 'undefined') {
             // Отправляем запрос на получение информаии о цели
             yield req.make(ctx, 'goals/' + self.get('id'), Object.assign({}, self.get(), {
                 method: 'PUT',
-            })).then( (response) => {
+            }))
+            .then( (response) => {
+                self.set(response)
+            })
+        // Если не был определен айдишник - это вставка
+        } else {
+            yield req.make(ctx, 'goals', Object.assign({}, self.get(), {
+                method: 'POST',
+            }))
+            .then( (response) => {
                 self.set(response)
             })
         }
+        
+        return self
     })
     
     self.set(data)

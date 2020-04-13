@@ -17,11 +17,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const helpers = require("./helpers")
+const common = __importDefault(require("../../util/common"))
 const logger = __importDefault(require("../../util/logger"))
 const session = __importDefault(require("../../util/session"))
+const keyboards = require("../../util/keyboards")
 const Goal = require("../../models/Goal")
 const User = require("../../models/User")
+const Contract = require("../../models/Contract")
 const req = __importDefault(require("../../util/req"))
+
+let shortcuts = {}
 
 /**
  *
@@ -38,32 +43,23 @@ exports.newGoalViewAction = newGoalViewAction
 /**
  *
  * @param ctx
+ * @param user User
  */
-const goalsListViewAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.fetching'))
+const goalsListViewAction = (ctx, user) => __awaiter(void 0, void 0, void 0, function* () {
+    yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.fetching') + (' ' + typeof user === 'object' ? user.get('username') : ''))
     
-    let goals = yield req.make(ctx, 'users/' + ctx.session.SGUser.get('id') + '/goals', {
-        method: 'GET'
-    }).then(async (response) => {
-        const goals = response
-
-        await goals.forEach(async(goal) => {
-            goal.contract = await req.make(ctx, `goals/${goal.id}/contract`, {
-                method: 'GET'
-            }).then((response) => {
-                return Object.assign({}, response, {string: helpers.stringifyContract(response)})
-            })
-        })
-        
-        return goals
-    })
+    // достаем объекты всех записей текущего юзера
+    let goals = yield (new Goal.default()).findAll(ctx, typeof user === 'object' ? user.get('id') : null)
     
-    // конвертируем записи в объекты
-    goals = goals.map((goal) => (new Goal.default()).set(goal))
-    
-    const goalsListKeyboard = helpers.goalsListKeyboard(ctx, goals)
-    goalsListKeyboard.disable_web_page_preview = true
-    yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.welcome_text'), goalsListKeyboard)
+    if (!goals || goals.length === 0) {
+        ctx.reply((typeof user === 'object'
+            ? 'У ' + user.get('email').replace(/@.+/, '') + ' еще нет целей.'
+            : 'У вас еще нет целей. Пора их создать'))
+    } else {
+        const goalsListKeyboard = helpers.goalsListKeyboard(ctx, goals)
+        goalsListKeyboard.disable_web_page_preview = true
+        yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.welcome_text'), goalsListKeyboard)
+    }
 })
 
 exports.goalsListViewAction = goalsListViewAction
@@ -90,18 +86,86 @@ const goalViewAction = async(ctx, goalId) => __awaiter(void 0, void 0, void 0, f
         }
     
         yield ctx.replyWithHTML(
-            `<i>Наименование:</i>\r\n    <b>${goal.get('title')}</b>`
+            (goal.get('code') && goal.get('code')!=='' ? `<i>Код:</i>\r\n    <b>${goal.get('code')}</b>\r\n` : '')
+            + `<i>Наименование:</i>\r\n    <b>${goal.get('title')}</b>`
             + `\r\n<i>Текст:</i>\r\n    ${goal.get('text')}`
+            + (goal.get('contract') ? `\r\n<i>Мой контракт:</i>\r\n    ${goal.get('contract').toString()}` : '')
             + (isMyGoal ? '' : `\r\n<i>Автор:</i>\r\n    ${owner.get('email').replace(/@.+$/, '')}`)
         )
     
         yield ctx.reply('Действия:', keyboard)
     } else {
-        logger.default.error('Error setting goal id')
+        logger.default.error(ctx, 'Error setting goal id')
         yield ctx.reply('Ошибка задания номер цели')
     }
 })
+
 exports.goalViewAction = goalViewAction
+
+/**
+ *
+ * @param ctx
+ */
+const joinGoalAction = async(ctx, goalData) => __awaiter(void 0, void 0, void 0, function* () {
+    let data = (typeof goalData).toLowerCase() === 'string'
+        ? {p: goalData} : (ctx.callbackQuery ? JSON.parse(ctx.callbackQuery.data) : null)
+
+    const matches = goalData.query.match(/\/contract\s+(?<goal>[^ ]+)\s+(?<contract>.+)$/)
+    let goal = null
+    let contractData
+    if (matches && matches.groups) {
+        // Если цель задана
+        if (matches.groups.goal) {
+            // Если цель задана в формате <owner>:<goal_code>
+            if (matches.groups.goal.match(/^[^:]+:[^:]+$/)) {
+                const sub_matches = matches.groups.goal.match(/(?<owner>[^:]+):(?<code>.+)$/)
+                if (sub_matches && sub_matches.groups) {
+                    goal = yield (new Goal.default()).findByOwnerAndCode(ctx, sub_matches.groups)
+                }
+            } else {
+                goal = yield (new Goal.default()).findByOwnerAndCode(ctx, {
+                    owner: ctx.session.SGUser.get('email').replace(/@.+/, ''),
+                    code: matches.groups.goal
+                })
+            }
+        }
+    
+        // Если контракт задан
+        if (matches.groups.contract) {
+            // Пытаемся распарсить строку контракта
+            contractData = (new Contract.default()).validateFormat(ctx, matches.groups.contract)
+            if (!contractData) {
+                logger.default.error(ctx, 'Ошибка парсинга строки контракта')
+                ctx.reply('Ошибка. Некорректно задана строка контракта: ' + matches.groups.contract)
+            }
+        }
+    
+        // Если цель определена
+        if (goal !== null && contractData !== null) {
+            const owner = (new User.default()).set(goal.get('owner'))
+            let contract = yield (new Contract.default()).findByGoalAndOwner(ctx, goal.get('id'), owner.get('id'))
+        
+            // Если контракт по этой цели у этого пользователя уже был
+            if (contract !== null) {
+                logger.default.debug(ctx, 'По этой цели у этого пользователя уже есть контракт')
+                ctx.reply('По этой цели у Вас уже есть контракт. Для изменения контракта воспользуйтесь командой /contracts из главного раздела или кнопкой "Контракты" в главном меню')
+            } else {
+                contract = (new Contract.default()).set(contractData)
+                yield contract.save()
+                ctx.reply('Данные контракта сохранены')
+            }
+        } else {
+            logger.default.error(ctx, 'Ошибка парсинга пользователя или контракта')
+            ctx.reply('Некорректные данные контракта')
+        }
+    } else {
+        logger.default.error(ctx, 'Ошибка парсинга строки контракта')
+    }
+    
+    return true
+})
+
+exports.joinGoalAction = joinGoalAction
 
 /**
  *
@@ -109,14 +173,23 @@ exports.goalViewAction = goalViewAction
  */
 exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
     let goals = null
-    if (!ctx.session.newGoalId || typeof ctx.session.newGoalId === 'undefined') {
-        goals = ctx.session.goals || {}
-        session.saveToSession(ctx, 'newGoalId', Math.round(Math.random() * 1000000))
-        goals[ctx.session.newGoalId] = yield (new Goal.default())
-        session.saveToSession(ctx, 'goals', goals)
+    
+    // Если это ввод параметров для создания новой цели
+    if (ctx.callbackQuery && ctx.callbackQuery.data && ctx.callbackQuery.data.match(/NewGoal/)) {
+        if (!ctx.session.newGoalId || typeof ctx.session.newGoalId === 'undefined') {
+            goals = ctx.session.goals || {}
+            session.saveToSession(ctx, 'newGoalId', Math.round(Math.random() * 1000000))
+            goals[ctx.session.newGoalId] = yield (new Goal.default())
+            session.saveToSession(ctx, 'goals', goals)
+        }
     }
     
     switch (ctx.callbackQuery && ctx.callbackQuery.data) {
+        case 'setNewGoalCode': {
+            ctx.reply(ctx.i18n.t('scenes.goals.set_code.text'))
+            ctx.session.state = 'enterNewGoalCode'
+            break
+        }
         case 'setNewGoalTitle': {
             ctx.reply(ctx.i18n.t('scenes.goals.set_title.text'))
             ctx.session.state = 'enterNewGoalTitle'
@@ -129,6 +202,11 @@ exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0,
         }
         case 'setNewGoalContract': {
             editContractAction(ctx, goals ? goals[ctx.session.newGoalId] : null)
+            break
+        }
+        case 'setOwnerForGoalJoining': {
+            ctx.reply(ctx.i18n.t('scenes.goals.join_goal.welcome_text'))
+            ctx.session.state = 'enterOwnerForGoalJoining'
             break
         }
     }
@@ -172,43 +250,7 @@ const editContractAction = async(ctx, goal) => __awaiter(void 0, void 0, void 0,
 exports.editContractAction = editContractAction
 
 /**
- *
- * @param ctx
- * @param goal
- */
-const setContractInGoalObject = async(ctx, goal, text) => __awaiter(void 0, void 0, void 0, function* () {
-    // Валидируем введенную строку
-    let correct = helpers.validateContractFormat(ctx, text)
-
-    if (correct !== null) {
-        logger.default.debug(ctx, 'Setting new goal occupation to', text)
-    
-        let contract = goal.get('contract')
-        contract.set(correct)
-        contract.set({occupation: text})
-    
-        goal.set({contract: contract})
-    
-        goal.get('contract').updateReadyState(ctx)
-        goal.updateReadyState(ctx)
-    
-        const currentGoals = ctx.session.goals
-        if (currentGoals) {
-            currentGoals[ctx.session.newGoalId] = goal
-            session.saveToSession(ctx, 'goals', currentGoals)
-        }
-        
-        return true
-    } else {
-        logger.default.error(ctx, 'Error setting new goal occupation. Parse error:', text)
-
-        yield ctx.reply('Некорректное значение параметра занятости')
-        
-        return false
-    }
-})
-
-/**
+ * Обрабатывает ввод произвольных строк с консоли
  *
  * @param ctx
  */
@@ -216,89 +258,121 @@ exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, functio
     const text = ctx.match.input
     logger.default.debug(ctx, 'Goals default Handler:', text)
     
-    switch (true) {
-
-        // Если ввели в консоли /viewgoal XX или /goalView XX - идем в просмотр цели
-        case text.match(/^\/?(viewgoal|goalView)\s*\d+$/) !== null: {
-            const params = text.match(/^\/?(viewgoal|goalView)\s*(\d+)$/)
-            logger.default.debug(ctx, 'View goal', params[2])
-            return goalViewAction(ctx, params[2])
-        }
+    // Смотрим короткие команды, если надены какая-то из них - выполняем и уходим
+    if ((yield common.checkShortcuts(ctx, text, shortcuts)) === true) {
+        return
+    }
     
-        // Если ввели в консоли /newgoal - идем в форму создания новой цели
-        case text.match(/^\/?newgoal/) !== null: {
-            logger.default.debug(ctx, 'New goal')
-            return newGoalViewAction(ctx)
-        }
+    // Иначе, для остальных вводимых строк
+    let goal = null
+    let currentGoals = null
     
-        // Если ввели в консоли /newgoal - идем в форму создания новой цели
-        case text.match(/^\/?editgoals/) !== null: {
-            logger.default.debug(ctx, 'List and edit goals')
-            return goalsListViewAction(ctx)
+    // Если был определен стейт
+    if (ctx.session.hasOwnProperty('state') && ctx.session.state !== null) {
+
+        logger.default.debug(ctx, 'Короткие команды не распознаны, определяем состояние: ', ctx.session.state)
+
+        if (ctx.session.state.match(/NewGoal/)) {
+            currentGoals = ctx.session.goals
+            goal = currentGoals[ctx.session.newGoalId]
+        } else if (ctx.session.state.match(/UpdatingGoal/)) {
+            goal = yield (new Goal.default()).findById(ctx, ctx.session.updatingGoalId)
         }
-    
-        // остальные введенные строки
-        default: {
-            
-            logger.default.debug(ctx, 'Короткие команды не распознаны, определяем состояние: ', ctx.session.state)
-            
-            let goal = null
-            let currentGoals = null
-            if (ctx.session.state.match(/NewGoal/)) {
-                currentGoals = ctx.session.goals
-                goal = currentGoals[ctx.session.newGoalId]
-            } else if (ctx.session.state.match(/UpdatingGoal/)) {
-                goal = yield (new Goal.default()).findById(ctx, ctx.session.updatingGoalId)
-            }
-            if (!goal) {
-                logger.default.debug(ctx, 'Ошибка определения объекта цели')
-            }
-            switch (ctx.session.state) {
+    }
 
-                // Ввод параметров для апдейта существующей цели
+    // Если не определена цель, а текущий стейт - по апдейту цели или вставке новой цели - выходим
+    if (!goal && (ctx.session.state || '').match(/(New|Updating)Goal/)) {
+        logger.default.error(ctx, 'Ошибка определения объекта цели')
+    } else {
+        switch (ctx.session.state) {
 
-                case 'enterUpdatingGoalContract': {
-                    const ret = yield setContractInGoalObject(ctx, goal, text)
-                    if (ret !== false) {
-                        goal.get('contract').save(ctx)
-                        yield ctx.reply('Данные контракта сохранены')
-                    }
-                    break
+            // Ввод параметров для апдейта существующей цели
+
+            case 'enterUpdatingGoalContract': {
+                if (!goal) {
+                    return
                 }
-    
-                // Ввод параметров для добавления новой цели
+                // Подгружаем экшны контрактов
+                const contractsActions = require('../contracts/actions')
 
-                case 'enterNewGoalTitle': {
-                    logger.default.debug(ctx, 'Setting new goal title to', text)
-                    goal.set({title: text})
+                const contract = goal.get('contract')
+                const ret = yield contractsActions.setContractInStoredObject(ctx, contract, text)
+                if (ret !== false) {
+                    contract.save(ctx)
+                    goal.set({contract: contract})
                     goal.updateReadyState(ctx)
-                    if (goal !== false) {
-                        currentGoals[ctx.session.newGoalId] = goal
-                        session.saveToSession(ctx, 'goals', currentGoals)
-                    }
-    
-                    newGoalViewAction(ctx)
-                    break
+                    yield ctx.reply('Данные контракта сохранены')
                 }
-                case 'enterNewGoalDescription': {
-                    logger.default.debug(ctx, 'Setting new goal description to', text)
-                    goal.set({text: text})
+                break
+            }
+            
+            case 'enterOwnerForGoalJoining': {
+                const owner = yield (new User.default().findByEmail(ctx, text + '@t.me'))
+                if (owner !== null) {
+                    if (owner.get('id') === ctx.session.SGUser.get('id')) {
+                        ctx.reply('Нет смысла подключаться к Вашим собственным целям еще раз. Выберите другого пользователя')
+                    } else {
+                        goalsListViewAction(ctx, owner)
+                    }
+                } else {
+                    ctx.reply('Пользователь не найден. Попробуйте еще раз')
+                }
+                break
+            }
+
+            // Ввод параметров для добавления новой цели
+
+            case 'enterNewGoalCode': {
+                logger.default.debug(ctx, 'Setting new goal code to', text)
+                goal.set({code: text})
+                goal.updateReadyState(ctx)
+
+                currentGoals[ctx.session.newGoalId] = goal
+                session.saveToSession(ctx, 'goals', currentGoals)
+    
+                newGoalViewAction(ctx)
+                break
+            }
+            case 'enterNewGoalTitle': {
+                logger.default.debug(ctx, 'Setting new goal title to', text)
+                goal.set({title: text})
+                goal.updateReadyState(ctx)
+
+                currentGoals[ctx.session.newGoalId] = goal
+                session.saveToSession(ctx, 'goals', currentGoals)
+    
+                newGoalViewAction(ctx)
+                break
+            }
+            case 'enterNewGoalDescription': {
+                logger.default.debug(ctx, 'Setting new goal description to', text)
+                goal.set({text: text})
+                goal.updateReadyState(ctx)
+
+                currentGoals[ctx.session.newGoalId] = goal
+                session.saveToSession(ctx, 'goals', currentGoals)
+
+                newGoalViewAction(ctx)
+                break
+            }
+            case 'enterNewGoalContract': {
+                // Подгружаем экшны контрактов
+                const contractsActions = require('../contracts/actions')
+
+                const contract = goal.get('contract')
+                const ret = yield contractsActions.setContractInStoredObject(ctx, contract, text)
+                if (ret !== false) {
+                    contract.save(ctx)
+                    goal.set({contract: contract})
                     goal.updateReadyState(ctx)
-                    if (goal !== false) {
-                        currentGoals[ctx.session.newGoalId] = goal
-                        session.saveToSession(ctx, 'goals', currentGoals)
-                    }
-    
-                    newGoalViewAction(ctx)
-                    break
+
+                    currentGoals[ctx.session.newGoalId] = goal
+                    session.saveToSession(ctx, 'goals', currentGoals)
                 }
-                case 'enterNewGoalContract': {
-                    yield setContractInGoalObject(ctx, goal, text)
-    
-                    // Снова показываем форму вводимых параметров цели
-                    newGoalViewAction(ctx)
-                    break
-                }
+
+                // Снова показываем форму вводимых параметров цели
+                newGoalViewAction(ctx)
+                break
             }
         }
     }
@@ -312,7 +386,7 @@ exports.newGoalSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function
     }
     
     if (!newGoal) {
-        logger.default.error('new goal object isn\'t defined')
+        logger.default.error(ctx, 'new goal object isn\'t defined')
         ctx.reply('Цель не задана')
         return null
     }
@@ -320,42 +394,38 @@ exports.newGoalSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function
     newGoal.updateReadyState(ctx)
 
     if (newGoal.get('ready') !== true) {
-        logger.default.error('new goal object isn\'t ready')
+        logger.default.error(ctx, 'new goal object isn\'t ready')
         ctx.reply('Параметры цели заданы не полностью')
         return null
     }
 
     if (!ctx.session.SGUser) {
-        logger.default.debug('user isn\'t defined')
+        logger.default.debug(ctx, 'user isn\'t defined')
         return yield req.make('sendMessage', {
             text: ctx.i18n.t('errors.goals.user_not_defined')
         })
     }
     
-    const ret = yield req.make(ctx, 'goals', {
-        title: newGoal.get('title'),
-        text: newGoal.get('text'),
-        owner: { id: ctx.session.SGUser.get('id')} ,
-        method: 'POST'
-    })
-
+    const ret = yield newGoal.save(ctx)
     ctx.reply('Цель создана')
     
     // Сетим айдишник цели в объекте контракта
     const newContract = newGoal.get('contract')
-    newContract.set({goal_id: ret.id})
-    
-    yield req.make(ctx, 'contracts', {
-        duration: newContract.get('duration'),
-        week_days: newContract.get('week_days'),
-        month_days: newContract.get('month_days'),
-        owner: { id: ctx.session.SGUser.get('id')} ,
-        goal: { id: newContract.get('goal_id')} ,
-        method: 'POST'
-    })
-
+    newContract.set({goal_id: ret.get('id')})
+    newContract.save(ctx)
     ctx.reply('Контракт подписан')
     
     session.deleteFromSession(ctx, 'state')
     session.deleteFromSession(ctx, 'newGoalId')
-});
+})
+
+/**
+ * Устанавливает локальную переменную, содержащую текущие короткие команды
+ * @param data
+ */
+exports.setShortcuts = (data) => shortcuts = data
+
+/**
+ * Возвращает локальную переменную, содержащую текущие короткие команды
+ */
+exports.getShortcuts = () => shortcuts;

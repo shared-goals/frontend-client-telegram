@@ -27,7 +27,45 @@ const common = require("../../util/common")
 const logger = __importDefault(require("../../util/logger"))
 const { leave } = Stage.default
 const goals = new baseScene.default('goals')
-exports.shortCommands = ['newgoal', 'viewgoal', 'editgoals', 'goals']
+
+// Устанавливаем короткие команды для этого контроллера
+actions.setShortcuts({
+    // Если ввели в консоли /viewgoal XX или /goalView XX - идем в просмотр цели
+    '^\\/?(viewgoal|goalView)\\s*\\d+$': {
+        handler: (ctx, text) => {
+            const params = text.match(/^\/?(viewgoal|goalView)\s*(\d+)$/)
+            logger.default.debug(ctx, 'View goal', params[2])
+            return actions.goalViewAction(ctx, params[2])
+        }
+    },
+
+    // Если ввели в консоли /newgoal - идем в форму создания новой цели
+    '^\\/?newgoal': {
+        handler: (ctx) => {
+            logger.default.debug(ctx, 'New goal')
+            return actions.newGoalViewAction(ctx)
+        }
+    },
+
+    // Если ввели в консоли /editgoals - идем в списоак целей
+    '^\\/?editgoals': {
+        handler: (ctx, text) => {
+            logger.default.debug(ctx, 'View or edit goal')
+            return actions.goalsListViewAction(ctx, {query: text})
+        }
+    },
+    
+    // Если ввели в консоли /editgoals - идем в списоак целей
+    '^\\/?contract\\s+': {
+        handler: async(ctx, text) => __awaiter(void 0, void 0, void 0, function* () {
+            logger.default.debug(ctx, 'Join goal', text)
+            return yield actions.joinGoalAction(ctx, {query: text})
+        })
+    }
+})
+
+
+
 
 goals.enter((ctx, state, silent) => __awaiter(void 0, void 0, void 0, function* () {
     logger.default.debug(ctx, 'Enters goals scene')
@@ -49,7 +87,7 @@ goals.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
 }))
 
 goals.action(/newGoalView/, actions.newGoalViewAction)
-goals.action(/goalsListView/, actions.goalsListViewAction, 123)
+goals.action(/goalsListView/, actions.goalsListViewAction)
 goals.action(/editContract/, actions.editContractAction)
 goals.action(/goalView/, actions.goalViewAction)
 goals.action(/newGoalSubmit/, actions.newGoalSubmit)
@@ -65,8 +103,9 @@ goals.hears(I18n.match('keyboards.back_keyboard.back'), leave())
 goals.hears(/.+/, actions.defaultHandler)
 
 goals.command('saveme', leave())
+goals.command('leave', leave())
 
 
-logger.default.debug(undefined, '🔹️  Start controller initiated')
+logger.default.debug(undefined, '🔹️  Goals controller initiated')
 
 exports.default = goals;

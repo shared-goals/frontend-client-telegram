@@ -95,7 +95,53 @@ let controller = {
             ctx.body = JSON.stringify({error: 404, message: 'User not found'})
         }
     },
+    
+    /**
+     * @swagger
+     *
+     * /users/search/{text}:
+     *   get:
+     *     summary: search a gidev text in username or email of users
+     *     operationId: readUserByEmail
+     *     tags:
+     *       - searchUser
+     *     parameters:
+     *       - name: text
+     *         in: path
+     *         required: true
+     *         description: the text suggested in email or username of the user to retrieve
+     *         schema:
+     *           type: string
+     *     responses:
+     *       '200':
+     *         description: success
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/User'
+     *       '404':
+     *         description: User not found
+     *
+     */
+    search: async (ctx) => {
+        const req = {}
+        ctx.query = controller.getParamsFromQuery('/users/search/{text}', ctx.request.url)
+        console.log(ctx.query)
+        if (ctx.query && ctx.query.text) {
+            req.email = new RegExp(ctx.query.text, 'i')
+        }
 
+        const users = await User.find(req).exec()
+        if(!users) {
+            ctx.body = JSON.stringify({error: 404, message: 'User not found'})
+            return ctx.status = 404
+        }
+        for(let i = 0; i < users.length; i++) {
+            users[i] = users[i].toClient()
+        }
+        ctx.body = users
+    },
+    
     /**
      * @swagger
      *
@@ -267,6 +313,20 @@ let controller = {
         if(n > 0) return ctx.status = 409;
         await User.deleteMany().exec();
         ctx.status = 204;
+    },
+    
+    /**
+     *
+     * @param pattern
+     * @param url
+     * @returns {any}
+     */
+    getParamsFromQuery: (pattern, url) => {
+        'use strict'
+        
+        const re = new RegExp(pattern.replace(/\{([^\}]+)\}/g, '(?<$1>[^\/]+)'))
+        const matches = re.exec(url)
+        return matches !== null ? matches.groups : null
     }
 }
 

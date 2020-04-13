@@ -43,6 +43,7 @@ const Session = __importDefault(require("telegraf/session"))
 const reqPromise = __importDefault(require("request-promise"))
 
 // Utils
+const common = __importDefault(require("./util/common"))
 const logger = __importDefault(require("./util/logger"))
 const notifier = require("./util/notifier")
 const errorHandler = __importDefault(require("./util/error-handler"))
@@ -51,6 +52,7 @@ const session = require("./util/session")
 
 // Controllers
 const goalsScene = __importDefault(require("./controllers/goals"))
+const contractsScene = __importDefault(require("./controllers/contracts"))
 const aboutScene = __importDefault(require("./controllers/about"))
 const startScene = __importDefault(require("./controllers/start"))
 const settingsScene = __importDefault(require("./controllers/settings"))
@@ -70,6 +72,7 @@ const bot = new Telegraf.default(process.env.TELEGRAM_TOKEN)
 // Создаем первую сцену
 const stage = new Stage.default([
     goalsScene.default,
+    contractsScene.default,
     startScene.default,
     settingsScene.default,
     adminScene.default
@@ -109,6 +112,11 @@ bot.catch((error) => {
 // Цели
 bot.hears(I18n.match('keyboards.main_keyboard.goals'), updater.updateUserTimestamp, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     return yield ctx.scene.enter('goals')
+})))
+
+// Контракты
+bot.hears(I18n.match('keyboards.main_keyboard.contracts'), updater.updateUserTimestamp, errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield ctx.scene.enter('contracts')
 })))
 
 // Настройки
@@ -154,30 +162,34 @@ bot.hears(/(.*?)/, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const text = ctx.match.input
     logger.default.debug(ctx, 'Default handler has fired:', text)
 
-    // Собираем короткие команды из каждой сцены, чтобы направить в соответствующую сцены на обработку
-    const shortCommands = {
-        goals: goalsScene.shortCommands,
-        // contracts: contractsScene.shortCommands
-    }
+    // Определяем сцены, для которых мы распознаем короткие команды
+    const shortcutsScenes = ['goals', 'contracts']
+    
+    // Собираем короткие комманды из каждого экшн-контроллера и подключаем их для вызова хэндлера по умолчанию
+    const shortCommands = {}
+    let actions = {}
+    shortcutsScenes.forEach((scene) => {
+        actions[scene] = require('./controllers/' + scene + '/actions')
+        shortCommands[scene] = actions[scene].getShortcuts()
+    })
 
     // Ищем введенную команду через соответствие регулярке по всем возможным короткимм командам каждой сцены
     let handler = null
     Object.keys(shortCommands).forEach((scene) => {
-        const re = new RegExp('\\/?(' + shortCommands[scene].join('|') + ')(\\s|$)')
+        const re = new RegExp('(' + Object.keys(shortCommands[scene]).join('|') + ')')
         if (re.test(text) === true) {
-            logger.default.debug(ctx, 'Detected required scene:', scene, ', redirect to defaultHandler')
-            const actions = require(`./controllers/${scene}/actions`)
+            logger.default.debug(ctx, 'Detected required scene:', scene, ', entering scene and calling ' + scene + '.defaultHandler()')
             ctx.scene.enter(scene)
             session.saveToSession(ctx, 'silentSceneChange', true)
-            handler = actions.defaultHandler
+            handler = actions[scene].defaultHandler
         }
     })
     
     // Если в какой-то сцене команда найдена - идем в ее defaultHandler
     if (handler !== null && typeof handler === 'function') {
-        handler(ctx)
+        handler.call(this, ctx)
     } else {
-        // Иначе выводис сообщение о неправильнйо команде
+        // Иначе выводис сообщение о неправильной команде
         const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
         yield ctx.reply(ctx.i18n.t('other.default_handler'), mainKeyboard)
     }

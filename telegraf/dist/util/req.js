@@ -46,7 +46,7 @@ async function make(ctx, url, args = {}) {
                 try {
                     responseJSON = JSON.parse(body)
                 } catch (err) {
-                    logger.default.error(err)
+                    logger.default.error(ctx, err)
                 }
                 // console.log(error, body)
                 if (responseJSON !== null) {

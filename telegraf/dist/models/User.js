@@ -41,6 +41,7 @@ function User (data) {
     
     self.set = (data) => {
         self.attributes = Object.assign({}, self.attributes, data)
+        return self
     }
     
     self.get = (key) => {
@@ -60,13 +61,26 @@ function User (data) {
             url = 'users/email/' + id || (ctx.from.username || ctx.from.id) + '@t.me'
         }
         yield req.make(ctx, url, {
-            external: true,
             method: 'GET'
         }).then( (response) => {
             self.set(response)
         })
 
         return self
+    })
+    
+    self.findByEmail = async(ctx, email) => __awaiter(void 0, void 0, void 0, function* () {
+        // Отправляем запрос на получение информаии о пользователе
+        const ret = yield req.make(ctx, 'users/email/' + email, {
+            method: 'GET'
+        }).then( (response) => {
+            self.set(response)
+            return true
+        }).catch( () => {
+            return false
+        })
+        
+        return ret ? self : null
     })
     
     self.set(data)

@@ -10,7 +10,7 @@ const Goal = require('../models/goal');
  *     Contract: 
  *       properties:
  *         id: 
- *           type: number
+ *           type: string
  *         goal:
  *           $ref: '#/components/schemas/Goal'
  *         owner:
@@ -36,19 +36,25 @@ const Goal = require('../models/goal');
  *     ContractPartial:
  *       properties:
  *         id:
- *           type: number
+ *           type: string
  *         goal:
  *           type: object
  *           properties: 
  *             id: 
+ *               type: string
+ *             code:
+ *               type: string
+ *             title:
+ *               type: string
+ *             owner:
  *               type: number
- *           required: 
+ *           required:
  *             - id
  *         owner:
  *           type: object
  *           properties:
  *             id:
- *               type: number
+ *               type: string
  *           required:
  *             - id
  *         duration:
@@ -238,8 +244,8 @@ let controller = {
             contract.week_days = ctx.request.body.week_days || []
             contract.month_days = ctx.request.body.month_days || []
             
-            contract.goal = goal._id;
-            contract.owner = user._id;
+            contract.goal = ctx.request.body.goal.id;
+            contract.owner = ctx.request.body.owner.id;
     
             await contract.save();
             await contract.populate('owner').populate('goal').execPopulate();
@@ -435,7 +441,12 @@ let controller = {
             return ctx.status = 400
         }
 
-        ctx.body = (await Contract.findOne(req).populate('owner').populate('goal').exec()).toClient();
+        const contract = await Contract.findOne(req).populate('owner').populate('goal').exec()
+        if (contract !== null) {
+            ctx.body = contract.toClient();
+        } else {
+            ctx.status = 404
+        }
     },
     
     /**
@@ -447,7 +458,7 @@ let controller = {
     getParamsFromQuery: (pattern, url) => {
         'use strict'
     
-        const re = new RegExp(pattern.replace(/\{([^\}]+)\}/g, '(?<$1>\\d+)'))
+        const re = new RegExp(pattern.replace(/\{([^\}]+)\}/g, '(?<$1>[^\/]+)'))
         const matches = re.exec(url)
         return matches !== null ? matches.groups : null
     }

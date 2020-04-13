@@ -44,10 +44,21 @@ function Contract (data) {
         ready: false
     }
     
+    /**
+     *
+     * @param data
+     * @returns {Contract}
+     */
     self.set = (data) => {
         self.attributes = Object.assign({}, self.attributes, data)
+        return self
     }
     
+    /**
+     *
+     * @param key
+     * @returns {*}
+     */
     self.get = (key) => {
         return key && typeof key !== 'undefined' ? self.attributes[key] : self.attributes
     }
@@ -85,7 +96,7 @@ function Contract (data) {
         if (data !== null) {
             ret = self.parseText(ctx, data.slice(1, 5))
         } else {
-            ret = data
+            ret = null
         }
         return ret
     }
@@ -99,24 +110,24 @@ function Contract (data) {
     self.parseText = (ctx, data) => {
         const mins_variants = ('m|min|mins|minutes|' + ctx.i18n.t('min_plur')).split('|')
         const hours_variants = ('h|hour|hours|' + ctx.i18n.t('hour_plur')).split('|')
-        
+    
         let ret = {
             duration: null,
             week_days: [],
             month_days: []
         }
-        
+    
         if (mins_variants.indexOf(data[1]) !== -1) {
             ret.duration = data[0]
         } else if (hours_variants.indexOf(data[1]) !== -1) {
             ret.duration = data[0] * 60
         }
-        
+    
         let days = data[3].replace(/\s/, '').replace(/[;|]/, ',').split(',')
-        
+    
         let short_weekdays = weekdays.map((item) => item.substr(0, 3))
         let local_weekdays = weekdays.map((item) => ctx.i18n.t(item))
-        
+
         days.forEach((day) => {
             if (day === 'day' || day === ctx.i18n.t('day')) {
                 ret.week_days = short_weekdays
@@ -148,7 +159,7 @@ function Contract (data) {
         const month_days = self.get('month_days')
         return duration && (week_days || month_days) ?
             ((duration >= 60 ? (duration / 60) + 'h' : duration + 'min')
-                + ' every ' + (week_days.length > 0 ? week_days.join(',') : month_days.join(','))) : null
+                + ' every ' + (week_days.length > 0 ? (week_days.length === 7 ? 'day' : week_days.join(',')) : month_days.join(','))) : null
     }
     
     /**
@@ -166,7 +177,7 @@ function Contract (data) {
      */
     self.findById = async(ctx, id) => __awaiter(void 0, void 0, void 0, function* () {
         // Отправляем запрос на получение информаии о цели
-        yield req.make(ctx, 'contract/' + id, {
+        yield req.make(ctx, 'contracts/' + id, {
             method: 'GET',
             
         }).then( (response) => {
@@ -202,19 +213,39 @@ function Contract (data) {
     }
     
     /**
-     *
+     * Сохранение объекта в БД. Апдейт существующей записи или вставка новой
      * @param ctx
      */
     self.save = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
+        // Определяем данные для вставки или апдейта
+        const data = self.get()
+        data.owner = { id: ctx.session.SGUser.get('id')}
+        
+        // Если был определен айдишник - это апдейт
         if (self.get('id') !== null && typeof self.get('id') !== 'undefined') {
             // Отправляем запрос на получение информаии о цели
-            return yield req.make(ctx, 'contracts/' + self.get('id'), Object.assign({}, self.get(), {
+            yield req.make(ctx, 'contracts/' + self.get('id'), Object.assign({}, self.get(), {
                 method: 'PUT',
-            })).then( (response) => {
-                return response
+            }))
+            .then( (response) => {
+                self.set(response)
+            })
+        // Если не был определен айдишник - это вставка
+        } else {
+            yield req.make(ctx, 'contracts', Object.assign({}, self.get(), {
+                method: 'POST',
+            }))
+            .then( (response) => {
+                self.set(response)
             })
         }
+        
+        return self
     })
+    
+    self.set(data)
+    
+    return self
 }
 
 logger.default.debug(undefined, '🔸️  Contract model initiated')
