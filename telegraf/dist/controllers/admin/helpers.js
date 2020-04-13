@@ -18,6 +18,22 @@ Object.defineProperty(exports, "__esModule", { value: true })
 
 const User_1 = __importDefault(require("../../models/User"))
 const telegram = __importDefault(require("../../telegram"))
+const Telegraf = require("telegraf")
+
+/**
+ * Генерирует главное меню сцены "Админ"
+ * @param ctx
+ * @returns {*|ExtraEditMessage}
+ */
+function getInitKeyboard(ctx) {
+    return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
+        [
+            m.callbackButton(ctx.i18n.t('keyboards.admin_keyboard.check_translations'), JSON.stringify({ a: 'checkTranslations' }), false),
+        ]
+    ], {}))
+}
+
+exports.getInitKeyboard = getInitKeyboard
 
 /**
  * Write message to a specific user or to all existing users

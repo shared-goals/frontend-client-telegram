@@ -106,7 +106,8 @@ function newGoalViewKeyboard(ctx) {
             m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('code') === null || newGoal.get('code') === '' ? 'empty' : 'checked']
                 + ctx.i18n.t('scenes.goals.set_code.button_text'), 'setNewGoalCode', false),
             m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('title') === null || newGoal.get('title') === '' ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_title.button_text'), 'setNewGoalTitle', false),
+                + ctx.i18n.t('scenes.goals.set_title.button_text'), 'setNewGoalTitle', false)
+        ], [
             m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('text') === null || newGoal.get('text') === '' ? 'empty' : 'checked']
                 + ctx.i18n.t('scenes.goals.set_description.button_text'), 'setNewGoalDescription', false),
             m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('contract').get('ready') === false ? 'empty' : 'checked']

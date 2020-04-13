@@ -20,7 +20,10 @@ const Stage = __importDefault(require("telegraf/stage"))
 const baseScene = __importDefault(require("telegraf/scenes/base"))
 const I18n = require("telegraf-i18n")
 const keyboards = require("../../util/keyboards")
+const session = __importDefault(require("../../util/session"))
+const common = __importDefault(require("../../util/common"))
 const logger = __importDefault(require("../../util/logger"))
+const actions = __importDefault(require("./actions"))
 const helpers = require("./helpers")
 const { leave } = Stage.default
 const admin = new baseScene.default('admin')
@@ -28,7 +31,13 @@ const admin = new baseScene.default('admin')
 admin.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     logger.default.debug(ctx, 'Enters admin scene')
     const { backKeyboard } = keyboards.getBackKeyboard(ctx)
-    yield ctx.reply('Welcome to Admin stage', backKeyboard)
+    session.deleteFromSession(ctx, 'adminScene')
+    if (ctx.session.silentSceneChange !== true) {
+        yield common.sendMessageToBeDeletedLater(ctx, 'admin', 'scenes.admin.welcome_text', helpers.getInitKeyboard(ctx))
+    }
+    session.deleteFromSession(ctx, 'silentSceneChange')
+    yield common.sendMessageToBeDeletedLater(ctx, 'admin', '', backKeyboard)
+
 }))
 
 admin.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
@@ -37,8 +46,11 @@ admin.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
 }))
 
+admin.action(/checkTranslations/, actions.checkTranslationsAction)
+
 admin.command('saveme', leave())
 admin.hears(I18n.match('keyboards.back_keyboard.back'), leave())
+
 admin.on('text', (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const [type, ...params] = ctx.message.text.split(' | ')
     switch (type) {

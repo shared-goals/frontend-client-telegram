@@ -86,7 +86,7 @@ const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* (
                 logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.SGUser.toJSON())
             })
         } else {
-            logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.SGUser.toJSON(), `\r\n`)
+            logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.SGUser.toJSON())
         }
 
         // ctx.reply('Пользователь определен')

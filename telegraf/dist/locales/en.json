@@ -1,4 +1,17 @@
 {
+    "monday": "mon",
+    "tuesday": "tue",
+    "wednesday": "wed",
+    "thursday": "thu",
+    "friday": "fri",
+    "saturday": "sat",
+    "sunday": "sun",
+    "every_plur": "every",
+    "week_plur": "week",
+    "min_plur": "min|minute",
+    "hour_plur": "h|hour",
+    "month": "month",
+    "day": "day",
     "scenes": {
         "start": {
             "welcome_back": "Glad to see you back. What are you up to?",
