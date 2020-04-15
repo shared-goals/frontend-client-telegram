@@ -228,7 +228,6 @@ exports.magickDataUnFlatten = magickDataUnFlatten
  * @returns {{}}|null
  */
 const getCallArguments = (ctx, data) => {
-    console.log('data', data)
     try {
         data =
             (typeof data).toLowerCase() === 'string'
@@ -238,7 +237,6 @@ const getCallArguments = (ctx, data) => {
                     : (ctx.callbackQuery && ctx.callbackQuery.data.match(/^\{.*\}$/)
                         ? JSON.parse(ctx.callbackQuery.data) : null))
     } catch (e) {
-        console.log('error parse')
         console.error(e)
     }
     return data

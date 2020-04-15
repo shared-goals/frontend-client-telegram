@@ -45,7 +45,6 @@ function newCommitViewKeyboard(ctx, commitId) {
     } else {
         newCommit = new Commit.default()
     }
-    console.log(newCommit)
     
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
         [

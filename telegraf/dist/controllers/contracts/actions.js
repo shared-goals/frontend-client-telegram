@@ -99,7 +99,7 @@ exports.contractViewAction = contractViewAction
 const newCommitViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0, function* () {
     // Разбираем переданные через контекст или директ-коллом аргументы
     data = common.getCallArguments(ctx, data)
-console.log('-==', data)
+
     let commits = {}
     
     // Если это ввод параметров для создания новой цели
