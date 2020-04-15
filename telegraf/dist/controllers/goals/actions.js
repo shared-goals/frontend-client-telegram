@@ -183,17 +183,17 @@ exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0,
     
     switch (ctx.callbackQuery && ctx.callbackQuery.data) {
         case 'setNewGoalCode': {
-            ctx.reply(ctx.i18n.t('scenes.goals.set_code.text'))
+            ctx.reply(ctx.i18n.t('scenes.goals.create_new.set_code.text'))
             ctx.session.state = 'enterNewGoalCode'
             break
         }
         case 'setNewGoalTitle': {
-            ctx.reply(ctx.i18n.t('scenes.goals.set_title.text'))
+            ctx.reply(ctx.i18n.t('scenes.goals.create_new.set_title.text'))
             ctx.session.state = 'enterNewGoalTitle'
             break
         }
         case 'setNewGoalDescription': {
-            ctx.reply(ctx.i18n.t('scenes.goals.set_description.text'))
+            ctx.reply(ctx.i18n.t('scenes.goals.create_new.set_description.text'))
             ctx.session.state = 'enterNewGoalDescription'
             break
         }
@@ -241,7 +241,7 @@ const editContractAction = async(ctx, goal) => __awaiter(void 0, void 0, void 0,
         currentContract = goal.get('contract').toString()
     }
 
-    ctx.replyWithHTML(`Текущий контракт: <code>${currentContract || 'не определен'}</code>\r\n\r\n` + ctx.i18n.t('scenes.goals.set_occupation.text'))
+    ctx.replyWithHTML(`Текущий контракт: <code>${currentContract || 'не определен'}</code>\r\n\r\n` + ctx.i18n.t('scenes.goals.create_new.set_occupation.text'))
 })
 
 exports.editContractAction = editContractAction

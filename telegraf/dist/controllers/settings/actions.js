@@ -38,20 +38,3 @@ exports.languageChangeAction = (ctx) => __awaiter(void 0, void 0, void 0, functi
     yield helpers.sendMessageToBeDeletedLater(ctx, 'scenes.settings.language_changed', helpers.getMainKeyboard(ctx))
     yield helpers.sendMessageToBeDeletedLater(ctx, 'scenes.settings.what_to_change', backKeyboard)
 })
-
-exports.accountSummaryAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    logger.default.debug(ctx, 'Checking account summary')
-    const user = yield User_1.default.findById(ctx.from.id)
-    yield ctx.editMessageText(ctx.i18n.t('scenes.settings.account_summary', {
-        username: user.username,
-        id: user._id,
-        totalMovies: user.totalMovies,
-        version: process.env.npm_package_version
-    }), helpers.getAccountSummaryKeyboard(ctx))
-    yield ctx.answerCbQuery()
-})
-
-exports.closeAccountSummaryAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    yield ctx.editMessageText(ctx.i18n.t('scenes.settings.what_to_change'), helpers.getMainKeyboard(ctx))
-    yield ctx.answerCbQuery()
-});

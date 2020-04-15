@@ -90,6 +90,7 @@ let controller = {
         } catch (err) {
             console.error(err)
             ctx.status = 404;
+            ctx.body = {error: 404, message: 'Contract not found'}
         }
     },
 
@@ -131,7 +132,7 @@ let controller = {
                 console.error('Owner is not defined. Check request body')
                 return ctx.status = 400;
             }
-            if(!user) {
+            if(!goal) {
                 console.error('Goal is not defined. Check request body')
                 return ctx.status = 400;
             }

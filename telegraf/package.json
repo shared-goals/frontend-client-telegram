@@ -23,6 +23,7 @@
     "imdb-api": "^4.0.2",
     "lodash": "^4.17.11",
     "mongoose": "^5.3.12",
+    "parse-duration": "^0.1.2",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
     "string-similarity": "^3.0.0",

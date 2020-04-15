@@ -22,19 +22,135 @@
         "about": {
             "main": "Few words about SharedGoals service"
         },
+        "commits": {
+            "create_new": {
+                "button_text": "🧰 Новый коммит",
+                "welcome_text": "Заполните необходимые поля",
+                "set_duration": {
+                    "text": "Введите длительность проведенной работы:",
+                    "button_text": "Задать длительность работы"
+                },
+                "edit_duration": {
+                    "text": "Введите длительность проведенной работы:",
+                    "button_text": "Изменить длительность работы"
+                },
+                "set_whats_done": {
+                    "text": "Введите текст о том, что было сделано в рамках коммита:",
+                    "button_text": "Задать текст \"Что сделано\""
+                },
+                "edit_whats_done": {
+                    "text": "Введите текст о том, что было сделано в рамках коммита:",
+                    "button_text": "Изменить текст \"Что сделано\""
+                },
+                "set_whats_next": {
+                    "text": "Введите текст о том, что планируется делать дальше:",
+                    "button_text": "Задать текст \"Что дальше\""
+                },
+                "edit_whats_next": {
+                    "text": "Введите текст о том, что планируется делать дальше:",
+                    "button_text": "Изменить текст \"Что дальше\""
+                }
+            }
+        },
+        "contracts": {
+            "welcome_text": "Действия:",
+            "welcome_more_text": "Выберите действие с контрактами из перечисленных выше",
+            "list_all": {
+                "fetching": "Запрашиваем список контрактов...",
+                "welcome_text": "Ваши контракты:",
+                "button_text": "🗂 Список контрактов"
+            }
+        },
+        "goals": {
+            "welcome_text": "Действия:",
+            "welcome_more_text": "Выберите действие с целями из перечисленных выше",
+            "your_goals": "Ваши цели:",
+            "list_all": {
+                "fetching": "Запрашиваем список целей...",
+                "welcome_text": "Ок. Вот список Ваших целей:",
+                "button_text": "🗂 Список целей"
+            },
+            "view_goal": {
+                "back": {
+                    "button_text": "⬅️ Назад к списку целей"
+                },
+                "set_contract": {
+                    "text": "Введите данные контракта:",
+                    "button_text": "🗂 Изменить контракт"
+                },
+                "view_contract": {
+                    "button_text": "🗂 Посмотреть контракт"
+                },
+                "edit_contract": {
+                    "button_text": "Редактировать контракт"
+                },
+                "set_commit": {
+                    "text": "Введите данные коммита:",
+                    "button_text": "🗂 Сделать коммит"
+                }
+            },
+            "join_goal": {
+                "button_text": "🗂 Присоединиться к чьей-то цели",
+                "welcome_text": "Введите username пользователя, к чьей цели Вы хотите присоединиться"
+            },
+            "create_new": {
+                "button_text": "🧰 Новая цель",
+                "welcome_text": "Заполните необходимые поля",
+                "set_code": {
+                    "text": "Введите код цели:",
+                    "button_text": "Задать код"
+                },
+                "edit_code": {
+                    "text": "Введите код цели:",
+                    "button_text": "Изменить код"
+                },
+                "set_title": {
+                    "text": "Введите наименование цели:",
+                    "button_text": "Задать наименование"
+                },
+                "edit_title": {
+                    "text": "Введите наименование цели:",
+                    "button_text": "Изменить наименование"
+                },
+                "set_text": {
+                    "text": "Введите описание цели:",
+                    "button_text": "Задать описание"
+                },
+                "edit_text": {
+                    "text": "Введите описание цели:",
+                    "button_text": "Изменить описание"
+                },
+                "set_occupation": {
+                    "text": "Выберите вариант занятости по контракту, можно выбирать различные комбинации опций\r\nXX[m|h] every (day|mon|tue|...|week|month|XX[,XX])\r\n<b>Примеры:</b>\r\n    10m every day\r\n    3h every sat,sun\r\n    10h every week\r\n    1h every 5,25",
+                    "button_text": "Задать контракт"
+                },
+                "edit_occupation": {
+                    "text": "Выберите вариант занятости по контракту, можно выбирать различные комбинации опций\r\nXX[m|h] every (day|mon|tue|...|week|month|XX[,XX])\r\n<b>Примеры:</b>\r\n    10m every day\r\n    3h every sat,sun\r\n    10h every week\r\n    1h every 5,25",
+                    "button_text": "Изменить контракт"
+                }
+            }
+        },
         "settings": {
             "pick_language": "Pick language. Selected new language will apply to interface, but not goals, contracts etc.",
             "language_changed": "Language has been changed.",
             "what_to_change": "What do you want to change?",
-            "account_summary": "Your account summary:\n\nVersion: ${version}\nUsername: ${username}\nID: ${id}",
             "language_button": "🗣 Language",
             "account_summary_button": "🔑 Account summary",
             "back_button": "◀️ Back",
             "settings": "Settings"
         },
+        "admin": {
+            "welcome_text": "Welcome to Admin stage"
+        },
         "contact": {
             "write_to_the_creator": "🤔 Here you can leave a message for the Creator. Be wise though, try to express your minds fully and clearly within one message.",
             "message_delivered": "📬 Your message has been delivered"
+        },
+        "back": {
+            "button_text": "⬅️ Назад"
+        },
+        "submit": {
+            "button_text": "💾️ Отправить"
         }
     },
     "shared": {
@@ -42,6 +158,7 @@
         "something_went_wrong": "❌ Something went wrong. Try one more time."
     },
     "keyboards": {
+        "sand_watch": "⏳",
         "back_keyboard": {
             "back": "◀️ Back"
         },
@@ -50,10 +167,12 @@
             "about": "❓ About",
             "goals": "🎯️ Goals",
             "contracts": "🤝 Contracts"
+        },
+        "admin_keyboard": {
+            "check_translations": "Проверить переводы"
         }
     },
     "other": {
-        "movie_has_been_released": "🎉 Movie ${movie} has been released!",
         "default_handler": "🚧 Hey, please choose a section with the Telegram keyboard before typing anything"
     },
     "errors": {

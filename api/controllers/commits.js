@@ -1,5 +1,6 @@
-const Commit = require('../models/commit');
 const User = require('../models/user');
+const Contract = require('../models/contract');
+const Commit = require('../models/commit');
 
 /**
  * @swagger
@@ -9,24 +10,38 @@ const User = require('../models/user');
  *     Commit: 
  *       properties:
  *         id: 
- *           type: Number
- *         title:
  *           type: string
- *         owner: 
+ *         contract:
+ *           $ref: '#/components/schemas/Contract'
+ *         owner:
  *           $ref: '#/components/schemas/User'
+ *         duration:
+ *           type: number,
+ *         whats_done:
+ *           type: string
+ *         whats_next:
+ *           type: string
  *     CommitPartial:
  *       properties:
- *         title:
- *           type: string
- *         owner: 
+ *         duration:
+ *           type: number
+ *         owner:
  *           type: object
- *           properties: 
- *             id: 
- *               type: Number
- *           required: 
+ *           properties:
+ *             id:
+ *               type: number
+ *           required:
+ *             - id
+ *         contract:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: number
+ *           required:
  *             - id
  *       required:
- *         - title
+ *         - duration
+ *         - whats_done
  *         - owner
  */
 let controller = {
@@ -38,6 +53,7 @@ let controller = {
             return next();
         } catch (err) {
             ctx.status = 404;
+            ctx.body = {error: 404, message: 'Commit not found'}
         }
     },
 
@@ -74,10 +90,22 @@ let controller = {
     create: async (ctx) => {
         try{
             const user = await User.findById(ctx.request.body.owner.id);
-            if(!user) return ctx.status = 400;
+            console.log(ctx.request.body.contract.id)
+            const contract = await Contract.findById(ctx.request.body.contract.id);
+            if(!user) {
+                console.error('Owner is not defined. Check request body')
+                return ctx.status = 400;
+            }
+            if(!contract) {
+                console.error('Contract is not defined. Check request body')
+                return ctx.status = 400;
+            }
             let commit = new Commit({
-                title: ctx.request.body.title,
                 owner: user._id,
+                contract: contract._id,
+                duration: ctx.request.body.duration,
+                whats_done: ctx.request.body.whats_done,
+                whats_next: ctx.request.body.whats_next
             });
             commit = await commit.save();
             await Commit.populate(commit, {path: 'owner'});

@@ -47,12 +47,7 @@ settings.command('saveme', leave())
 settings.hears(I18n.match('keyboards.back_keyboard.back'), leave())
 
 settings.action(/languageSettings/, actions.languageSettingsAction)
-
 settings.action(/languageChange/, actions.languageChangeAction)
-
-settings.action(/accountSummary/, actions.accountSummaryAction)
-
-settings.action(/closeAccountSummary/, actions.closeAccountSummaryAction)
 
 logger.default.debug(undefined, '🔹️  Settings controller initiated')
 

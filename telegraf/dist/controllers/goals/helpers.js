@@ -103,15 +103,27 @@ function newGoalViewKeyboard(ctx) {
 
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
         [
-            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('title') === null || newGoal.get('title') === '' ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_title.button_text'), 'setNewGoalTitle', false),
-            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('code') === null || newGoal.get('code') === '' ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_code.button_text'), 'setNewGoalCode', false)
+            m.callbackButton(
+                (!newGoal || newGoal.get('title') === null || newGoal.get('title') === '' || typeof newGoal.get('title') === 'undefined'
+                    ? defaults.icons.check['empty'] + ctx.i18n.t('scenes.goals.create_new.set_title.button_text')
+                    : defaults.icons.check['checked'] + ctx.i18n.t('scenes.goals.create_new.edit_title.button_text')),
+                'setNewGoalTitle', false),
+            m.callbackButton(
+                (!newGoal || newGoal.get('code') === null || newGoal.get('code') === '' || typeof newGoal.get('code') === 'undefined'
+                    ? defaults.icons.check['empty'] + ctx.i18n.t('scenes.goals.create_new.set_code.button_text')
+                    : defaults.icons.check['checked'] + ctx.i18n.t('scenes.goals.create_new.edit_code.button_text')),
+                'setNewGoalCode', false)
         ], [
-            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('contract').get('ready') === false ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_occupation.button_text'), 'setNewGoalContract', false),
-            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('text') === null || newGoal.get('text') === '' ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_description.button_text'), 'setNewGoalDescription', false)
+            m.callbackButton(
+                (!newGoal || newGoal.get('occupation') === null || newGoal.get('occupation') === '' || typeof newGoal.get('occupation') === 'undefined'
+                    ? defaults.icons.check['empty'] + ctx.i18n.t('scenes.goals.create_new.set_occupation.button_text')
+                    : defaults.icons.check['checked'] + ctx.i18n.t('scenes.goals.create_new.edit_occupation.button_text')),
+                'setNewGoalContract', false),
+            m.callbackButton(
+                (!newGoal || newGoal.get('text') === null || newGoal.get('text') === '' || typeof newGoal.get('text') === 'undefined'
+                    ? defaults.icons.check['empty'] + ctx.i18n.t('scenes.goals.create_new.set_text.button_text')
+                    : defaults.icons.check['checked'] + ctx.i18n.t('scenes.goals.create_new.edit_text.button_text')),
+                'setNewGoalDescription', false)
         ],
         [
             m.callbackButton(ctx.i18n.t('scenes.submit.button_text'), 'newGoalSubmit', false),

@@ -30,7 +30,7 @@ function Goal (data) {
     let self = this
     data = data || {}
     
-    const ownerAndCodeDivider = '@'
+    const ownerAndCodeDivider = '/'
     
     self.attributes = {
         owner: null,
@@ -54,9 +54,8 @@ function Goal (data) {
     }
     
     self.getLink = (ctx) => {
-        const isMyGoal = (self.get('owner').id === ctx.session.SGUser.get('id'))
         return (self.get('code') && self.get('code')!==''
-            ? `/viewgoal ` + (isMyGoal ? 'me' : self.get('owner').email.replace(/@.+/, ''))
+            ? `/viewgoal ` + self.get('owner').email.replace(/@.+/, '')
                 + `${ownerAndCodeDivider}${self.get('code')}`
             : `/viewgoal ${self.get('id').substr(0, process.env.GOAL_HASH_LENGTH)}`)
     }
@@ -100,23 +99,23 @@ function Goal (data) {
      * @param id
      */
     self.find = async(ctx, query) => __awaiter(void 0, void 0, void 0, function* () {
-        const re = new RegExp('^(?<owner>[^' + ownerAndCodeDivider + ']+)' + ownerAndCodeDivider + '(?<code>.+)$')
+        const re = new RegExp('^(?<owner>[^' + ownerAndCodeDivider + '\\s]+)' + ownerAndCodeDivider + '(?<code>.+)$')
         const sub_matches = query.match(re)
-    
-        // Если запрос в виде <строка>@<строка> - считаем что это пользователь и код
+
+        // Если запрос в виде <строка>/<строка> - считаем что это пользователь и код
         if (sub_matches && sub_matches.groups) {
             return yield self.findByOwnerAndCode(ctx, sub_matches.groups)
         } else {
             // Если query начинается с решетки - пробуем найти строку в поле кода цели
-            if (query.match(new RegExp('^' + ownerAndCodeDivider + '.+'))) {
+            if (query.match(new RegExp('^(me|@me|my)?\\s*' + ownerAndCodeDivider + '.+'))) {
                 return yield self.findByOwnerAndCode(ctx, {
                     owner: ctx.session.SGUser.get('email').replace(/@.+/, ''),
-                    code: query.replace(new RegExp('^' + ownerAndCodeDivider), '')
+                    code: query.replace(new RegExp('^.*' + ownerAndCodeDivider), '')
                 })
             }
             // Иначе если ровно GOAL_HASH_LENGTH символов - считаем что это часть ее _id
             else {
-                return self.findById(ctx, query)
+                return yield self.findById(ctx, query)
             }
         }
     })
@@ -129,15 +128,21 @@ function Goal (data) {
      */
     self.findById = async(ctx, id) => __awaiter(void 0, void 0, void 0, function* () {
         // Отправляем запрос на получение информаии о цели
-        yield req.make(ctx, 'goals/' + id, {
+        const ret = yield req.make(ctx, 'goals/' + id, {
             method: 'GET'
         }).then( (response) => {
-            self.set(response)
+            return self.set(response)
+        }).catch((reason) => {
+            logger.default.error(reason)
+            return false
         })
-        
-        return self.set({
-            contract: yield (new Contract.default()).findByGoalAndOwner(ctx, self.get('id'), ctx.session.SGUser.get('id'))
-        })
+        if (ret !== false) {
+            return self.set({
+                contract: yield (new Contract.default()).findByGoalAndOwner(ctx, self.get('id'), ctx.session.SGUser.get('id'))
+            })
+        } else {
+            return null
+        }
     })
     
     /**

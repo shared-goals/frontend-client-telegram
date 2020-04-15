@@ -28,6 +28,7 @@ require('dotenv').config()
 
 // Main libs
 const I18n = require("telegraf-i18n")
+const fs = require('fs')
 
 const helpers = require("./helpers")
 const common = __importDefault(require("../../util/common"))
@@ -80,31 +81,34 @@ const checkTranslationsAction = (ctx) => __awaiter(void 0, void 0, void 0, funct
         }
     })
     
-    // ctx.i18n.repository[lang]
-    
-    fixTranslationsAction(ctx, {from: 'ru', to: 'en'})
-    
+    const translatesTo = convertTranslationsAction(ctx, {from: 'ru', to: 'en'})
     helpers.write(ctx, process.env.TRANSLATOR_ID, missed['en'].length + ' en-переводов отсутствуют')
-
-    ctx.replyWithHTML('<code>' + str + '</code>')
+    fs.writeFile('./dist/locales/en.json', JSON.stringify(translatesTo, ' ', 4)/*, function(error){
+        if(error) throw error; // если возникла ошибка
+        console.log("Асинхронная запись файла завершена. Содержимое файла:");
+        let data = fs.readFileSync("./dist/locales/en.json", "utf8");
+        console.log(data);  // выводим считанные данные
+    }*/)
 })
 
 exports.checkTranslationsAction = checkTranslationsAction
 
-const fixTranslationsAction = (ctx, what) => {
+const convertTranslationsAction = (ctx, what) => {
     const lang_from = what.from
     const lang_to = what.to
     
     const repo = ctx.i18n.repository[lang_from]
-    const hashWalk = (obj) => {
-        (Object.keys(obj) || []).forEach((item) => {
-            console.log(item)
-            if (item.isPrototypeOf(Object)) {
-                console.log('объект')
-            }
-        })
-        hashWalk(arr)
+    const flattenRepos = {
+        from: common.magickDataFlatten(ctx.i18n.repository[lang_from], {divider: '/'}),
+        to: common.magickDataFlatten(ctx.i18n.repository[lang_to], {divider: '/'})
     }
-    hashWalk(ctx.i18n.repository[lang_from])
+    
+    Object.keys(flattenRepos.from || {}).forEach((key) => {
+        flattenRepos.from[key] =
+            flattenRepos.to.hasOwnProperty(key) && (typeof flattenRepos.to[key]) !== 'undefined'
+                ? ((typeof flattenRepos.to[key]).toLowerCase() === 'function' ? flattenRepos.to[key]() : flattenRepos.to[key])
+                : ((typeof flattenRepos.from[key]).toLowerCase() === 'function' ? flattenRepos.from[key]() : flattenRepos.from[key])
+    })
+    
+    return common.magickDataUnFlatten(flattenRepos.from, {divider: '/'})
 }
-

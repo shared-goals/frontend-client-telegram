@@ -31,28 +31,40 @@ exports.shortCommands = ['contract']
 
 // Устанавливаем короткие команды для этого контроллера
 actions.setShortcuts({
-    // '^\\/?contract': {
-    //     handler: (ctx, text) => {
-    //         logger.default.debug(ctx, 'View or edit contract')
-    //         return actions.contractViewAction(ctx, {query: text})
-    //     }
-    // },
-    '^\\/?(contractView|viewcontract)\\s+.+': {
+
+    '^\\/?(contractView|viewcontract)\\s+(?<params>.+)$': {
         handler: (ctx, text) => {
             logger.default.debug(ctx, 'View contract', text)
             return actions.contractViewAction(ctx, {query: text})
-        }
+        },
+        examples: [
+            {cmd: '/viewcontract b334b46f', info: 'Просмотреть информацию о контракте к цели с ID:b334b46f'},
+            {cmd: '/viewcontract Bongiozzo/sgfriends', info: 'Просмотреть информацию о контракте к цели пользователя Bongiozzo с кодом "sgfriends"'}
+        ]
     },
 
-    // Комманды /contracts - список контрактов
     '^\\/?contracts': {
         handler: (ctx, text) => {
             logger.default.debug(ctx, 'View contracts list', text)
             return actions.contractsListViewAction(ctx, {query: text})
-        }
-    }
+        },
+        examples: [
+            {cmd: '/contracts', info: 'Список контрактов'}
+        ]
+    },
     
+    '^\\/?commit\\s+(?<params>.+)$': {
+        handler: async(ctx, text) => __awaiter(void 0, void 0, void 0, function* () {
+            logger.default.debug(ctx, 'Set new commit:', text)
+            return yield actions.newCommitViewAction(ctx, {query: text})
+        }),
+        examples: [
+            {cmd: '/commit ewgeniyk/sg 1h 30min "сделал короткую команду"', info: 'Записать коммит длительностью 1.5 часа по цели пользователя ewgeniyk с кодом "sg", установить текст о проделанной работе "сделал короткую команду"'}
+        ]
+    }
 })
+
+
 
 // Инициализация сцены
 contracts.enter((ctx, state, silent) => __awaiter(void 0, void 0, void 0, function* () {
@@ -70,6 +82,8 @@ contracts.enter((ctx, state, silent) => __awaiter(void 0, void 0, void 0, functi
 contracts.action(/contractsListView/, actions.contractsListViewAction)
 contracts.action(/editContract/, actions.editContractAction)
 contracts.action(/contractView/, actions.contractViewAction)
+contracts.action(/setCommit/, actions.newCommitViewAction)
+contracts.action(/newCommitSubmit/, actions.newCommitSubmit)
 
 // Уход со цены
 contracts.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
@@ -84,6 +98,9 @@ contracts.hears(I18n.match('keyboards.back_keyboard.back'), leave())
 
 // Обработка произвольных вводов с клавиатуры
 contracts.hears(/.+/, actions.defaultHandler)
+
+// Обработка нажатий на кнопки, после которых должны быть инициированы вводы с клавиатуры
+contracts.action(/.+/, actions.newGoalAnyButtonAction)
 
 // contracts.command('saveme', leave())
 contracts.command('leave', leave())

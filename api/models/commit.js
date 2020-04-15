@@ -1,16 +1,27 @@
 const Mongoose = require('mongoose');
-const AutoIncrement = require('mongoose-auto-increment');
+// const AutoIncrement = require('mongoose-auto-increment');
 
 const commitSchema = new Mongoose.Schema(
     {
-        title: {
+        contract: {             // Контракт, к которой прикреплен коммит
             type: String,
             required: true,
+            ref: 'Goal'
         },
-        owner: {
+        owner: {                // Автор контракта
             type: Number,
             required: true,
             ref: 'User'
+        },
+        duration: {             // Длительность в минутах
+            type: Number,
+            required: true
+        },
+        whats_done: {           // Что сделано
+            type: String
+        },
+        whats_next: {           // Что дальше делать
+            type: String
         },
     }, 
     {timestamps: true}
@@ -24,6 +35,9 @@ commitSchema.method('toClient', function() {
     obj.owner = {
         id: obj.owner._id,
         email: obj.owner.email,
+    }
+    obj.contract = {
+        id: obj.contract ? obj.contract._id : null
     }
 
     // Delete fields

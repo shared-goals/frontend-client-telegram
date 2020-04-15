@@ -30,41 +30,48 @@ const goals = new baseScene.default('goals')
 
 // Устанавливаем короткие команды для этого контроллера
 actions.setShortcuts({
-    // Если ввели в консоли /viewgoal XX или /goalView XX - идем в просмотр цели
-    '^\\/?(viewgoal|goalView)\\s*.+$': {
+
+    '^\\/?(viewgoal|goalView)\\s*(?<params>.+)$': {
         handler: (ctx, text) => {
-            const params = text.match(/^\/?(viewgoal|goalView)\s*(.+)$/)
-            logger.default.debug(ctx, 'View goal', params[2])
-            return actions.goalViewAction(ctx, params[2])
-        }
+            const params = text.match(/^\/?(viewgoal|goalView)\s*(?<params>.+)$/)
+            logger.default.debug(ctx, 'View goal', text)
+            return actions.goalViewAction(ctx, text)
+        },
+        examples: [
+            {cmd: '/viewgoal b334b46f', info: 'Просмотреть информацию о цели с ID:b334b46f'}
+        ]
     },
 
-    // Если ввели в консоли /newgoal - идем в форму создания новой цели
     '^\\/?newgoal': {
         handler: (ctx) => {
             logger.default.debug(ctx, 'New goal')
             return actions.newGoalViewAction(ctx)
-        }
+        },
+        examples: [
+            {cmd: '/newgoal', info: 'Перейти к созданию новой цели'}
+        ]
     },
 
-    // Если ввели в консоли /editgoals - идем в списоак целей
     '^\\/?editgoals': {
         handler: (ctx, text) => {
             logger.default.debug(ctx, 'View or edit goal')
             return actions.goalsListViewAction(ctx, {query: text})
-        }
+        },
+        examples: [
+            {cmd: '/editgoals', info: 'Перейти к списку своих целей'}
+        ]
     },
     
-    // Если ввели в консоли /editgoals - идем в списоак целей
-    '^\\/?contract\\s+': {
+    '^\\/?contract\\s+(?<params>.+)$': {
         handler: async(ctx, text) => __awaiter(void 0, void 0, void 0, function* () {
             logger.default.debug(ctx, 'Join goal', text)
             return yield actions.joinGoalAction(ctx, {query: text})
-        })
+        }),
+        examples: [
+            {cmd: '/contract ewgeniyk/sg 4h every sat,sun', info: 'Присоединиться к цели с кодом "sg" пользователя ewgeniyk, установив контракт "4 часа каждые субботу и воскресенье"'}
+        ]
     }
 })
-
-
 
 
 goals.enter((ctx, state, silent) => __awaiter(void 0, void 0, void 0, function* () {

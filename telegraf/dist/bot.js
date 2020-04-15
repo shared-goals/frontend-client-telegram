@@ -157,6 +157,30 @@ bot.start(errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, functi
     return ctx.scene.enter('start')
 })))
 
+// По /admin Грузим сцену админ-действий
+bot.hears(/help/, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    // Определяем сцены, для которых мы распознаем короткие команды
+    const shortcutsScenes = ['goals', 'contracts']
+    
+    // Собираем короткие комманды из каждого экшн-контроллера и подключаем их для вызова хэндлера по умолчанию
+    const shortCommands = {}
+    let actions = {}
+    let examples = []
+    shortcutsScenes.forEach((scene) => {
+        actions[scene] = require('./controllers/' + scene + '/actions')
+        shortCommands[scene] = actions[scene].getShortcuts()
+        Object.keys(shortCommands[scene]).forEach((key) => {
+            examples = examples.concat(shortCommands[scene][key].examples || [])
+        })
+    })
+
+    let str = ''
+    examples.forEach((example) => {
+        str += `<code>${example.cmd}</code>\r\n${example.info}\r\n`
+    })
+    ctx.replyWithHTML(str)
+}))
+
 // Все остальные команды
 bot.hears(/(.*?)/, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const text = ctx.match.input
@@ -176,23 +200,26 @@ bot.hears(/(.*?)/, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     // Ищем введенную команду через соответствие регулярке по всем возможным короткимм командам каждой сцены
     let handler = null
     Object.keys(shortCommands).forEach((scene) => {
-        const re = new RegExp('(' + Object.keys(shortCommands[scene]).join('|') + ')')
-        if (re.test(text) === true) {
-            logger.default.debug(ctx, 'Detected required scene:', scene, ', entering scene and calling ' + scene + '.defaultHandler()')
-            ctx.scene.enter(scene)
-            session.saveToSession(ctx, 'silentSceneChange', true)
-            handler = actions[scene].defaultHandler
-        }
+        Object.keys(shortCommands[scene] || {}).forEach((pattern) => {
+            const re = new RegExp(pattern)
+            if (re.test(text) === true && handler === null) {
+                logger.default.debug(ctx, 'Detected required scene:', scene, ', entering scene and calling ' + scene + '.defaultHandler()')
+                ctx.scene.enter(scene)
+                session.saveToSession(ctx, 'silentSceneChange', true)
+                handler = actions[scene].defaultHandler
+            }
+        })
     })
     
     // Если в какой-то сцене команда найдена - идем в ее defaultHandler
     if (handler !== null && typeof handler === 'function') {
-        handler.call(this, ctx)
+        yield handler.call(this, ctx)
     } else {
         // Иначе выводис сообщение о неправильной команде
         const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
         yield ctx.reply(ctx.i18n.t('other.default_handler'), mainKeyboard)
     }
+    return false
 }))
 
 
