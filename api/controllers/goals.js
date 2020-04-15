@@ -60,13 +60,17 @@ let controller = {
 
     getById: async(id, ctx, next) => {
         try{
-            ctx.goal = await Goal.findById(id).populate('owner').exec();
+            const findedGoal = await Goal.aggregate([{'$addFields':{strId: {'$toString': '$_id'}}}, {'$match':{strId: new RegExp(id)}}]).exec();
+            if (findedGoal !== null) {
+                ctx.goal = await Goal.findById(findedGoal[0]._id).populate('owner').exec();
+            }
             // ctx.goal.contract = await Contract.find({goal: id}).populate('owner').populate('goal').exec();
             if(!ctx.goal) return ctx.status = 404;
             return next();
         } catch (err) {
             console.error(err)
             ctx.status = 404;
+            ctx.body = {error: 404, message: 'Goal not found'}
         }
     },
 

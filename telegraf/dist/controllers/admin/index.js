@@ -52,7 +52,7 @@ admin.command('saveme', leave())
 admin.hears(I18n.match('keyboards.back_keyboard.back'), leave())
 
 admin.on('text', (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    const [type, ...params] = ctx.message.text.split(' | ')
+    const [type, ...params] = ctx.message.text.split(' ')
     switch (type) {
         case 'write':
             yield helpers.write(ctx, params[0], params[1])

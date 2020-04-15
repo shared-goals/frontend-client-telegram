@@ -31,9 +31,9 @@ const goals = new baseScene.default('goals')
 // Устанавливаем короткие команды для этого контроллера
 actions.setShortcuts({
     // Если ввели в консоли /viewgoal XX или /goalView XX - идем в просмотр цели
-    '^\\/?(viewgoal|goalView)\\s*\\d+$': {
+    '^\\/?(viewgoal|goalView)\\s*.+$': {
         handler: (ctx, text) => {
-            const params = text.match(/^\/?(viewgoal|goalView)\s*(\d+)$/)
+            const params = text.match(/^\/?(viewgoal|goalView)\s*(.+)$/)
             logger.default.debug(ctx, 'View goal', params[2])
             return actions.goalViewAction(ctx, params[2])
         }

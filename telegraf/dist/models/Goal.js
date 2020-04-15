@@ -30,6 +30,8 @@ function Goal (data) {
     let self = this
     data = data || {}
     
+    const ownerAndCodeDivider = '@'
+    
     self.attributes = {
         owner: null,
         code: '',
@@ -49,6 +51,14 @@ function Goal (data) {
     
     self.get = (key) => {
         return key && typeof key !== 'undefined' ? self.attributes[key] : self.attributes
+    }
+    
+    self.getLink = (ctx) => {
+        const isMyGoal = (self.get('owner').id === ctx.session.SGUser.get('id'))
+        return (self.get('code') && self.get('code')!==''
+            ? `/viewgoal ` + (isMyGoal ? 'me' : self.get('owner').email.replace(/@.+/, ''))
+                + `${ownerAndCodeDivider}${self.get('code')}`
+            : `/viewgoal ${self.get('id').substr(0, process.env.GOAL_HASH_LENGTH)}`)
     }
     
     self.toJSON = () => {
@@ -84,6 +94,34 @@ function Goal (data) {
     })
     
     /**
+     * Возвращает объект цели по ее идентификатору / пользователю и коду
+     *
+     * @param ctx
+     * @param id
+     */
+    self.find = async(ctx, query) => __awaiter(void 0, void 0, void 0, function* () {
+        const re = new RegExp('^(?<owner>[^' + ownerAndCodeDivider + ']+)' + ownerAndCodeDivider + '(?<code>.+)$')
+        const sub_matches = query.match(re)
+    
+        // Если запрос в виде <строка>@<строка> - считаем что это пользователь и код
+        if (sub_matches && sub_matches.groups) {
+            return yield self.findByOwnerAndCode(ctx, sub_matches.groups)
+        } else {
+            // Если query начинается с решетки - пробуем найти строку в поле кода цели
+            if (query.match(new RegExp('^' + ownerAndCodeDivider + '.+'))) {
+                return yield self.findByOwnerAndCode(ctx, {
+                    owner: ctx.session.SGUser.get('email').replace(/@.+/, ''),
+                    code: query.replace(new RegExp('^' + ownerAndCodeDivider), '')
+                })
+            }
+            // Иначе если ровно GOAL_HASH_LENGTH символов - считаем что это часть ее _id
+            else {
+                return self.findById(ctx, query)
+            }
+        }
+    })
+    
+    /**
      * Возвращает объект цели по ее идентификатору
      *
      * @param ctx
@@ -96,9 +134,9 @@ function Goal (data) {
         }).then( (response) => {
             self.set(response)
         })
-    
+        
         return self.set({
-            contract: yield (new Contract.default()).findByGoalAndOwner(ctx, id, ctx.session.SGUser.get('id'))
+            contract: yield (new Contract.default()).findByGoalAndOwner(ctx, self.get('id'), ctx.session.SGUser.get('id'))
         })
     })
     
@@ -110,10 +148,11 @@ function Goal (data) {
      */
     self.findByOwnerAndCode = async(ctx, data) => __awaiter(void 0, void 0, void 0, function* () {
         let goals = []
-        const owner = yield (new User.default().findByEmail(ctx, data.owner + '@t.me'))
+        const owner = yield (new User.default().findByEmail(ctx,
+            (data.owner === 'me' ? ctx.session.SGUser.get('email').replace(/@.+/, '') : data.owner) + '@t.me'))
 
         if (owner !== null) {
-            goals = yield self.findAll(ctx, owner.id)
+            goals = yield self.findAll(ctx, owner.get('id'))
             goals = (goals || []).filter((goal) => {
                 return goal.get('code') === data.code
             })

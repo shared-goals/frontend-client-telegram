@@ -24,6 +24,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
+require('dotenv').config()
+
 // Main libs
 const I18n = require("telegraf-i18n")
 
@@ -77,9 +79,32 @@ const checkTranslationsAction = (ctx) => __awaiter(void 0, void 0, void 0, funct
             })
         }
     })
+    
+    // ctx.i18n.repository[lang]
+    
+    fixTranslationsAction(ctx, {from: 'ru', to: 'en'})
+    
+    helpers.write(ctx, process.env.TRANSLATOR_ID, missed['en'].length + ' en-переводов отсутствуют')
 
-    ctx.replyWithHTML(str)
+    ctx.replyWithHTML('<code>' + str + '</code>')
 })
 
 exports.checkTranslationsAction = checkTranslationsAction
+
+const fixTranslationsAction = (ctx, what) => {
+    const lang_from = what.from
+    const lang_to = what.to
+    
+    const repo = ctx.i18n.repository[lang_from]
+    const hashWalk = (obj) => {
+        (Object.keys(obj) || []).forEach((item) => {
+            console.log(item)
+            if (item.isPrototypeOf(Object)) {
+                console.log('объект')
+            }
+        })
+        hashWalk(arr)
+    }
+    hashWalk(ctx.i18n.repository[lang_from])
+}
 

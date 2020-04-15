@@ -51,6 +51,7 @@ const goalsListViewAction = (ctx, user) => __awaiter(void 0, void 0, void 0, fun
     
     // достаем объекты всех записей текущего юзера
     let goals = yield (new Goal.default()).findAll(ctx, settedUser ? user.get('id') : null)
+    console.log(goals)
     
     if (!goals || goals.length === 0) {
         ctx.reply((settedUser
@@ -74,8 +75,12 @@ const goalViewAction = async(ctx, goalId) => __awaiter(void 0, void 0, void 0, f
         ? {p: goalId} : (ctx.callbackQuery ? JSON.parse(ctx.callbackQuery.data) : null)
 
     if (data !== null) {
-        const goal = yield (new Goal.default()).findById(ctx, data.p).then((g) => {return g})
-        
+        const goal = yield (new Goal.default()).find(ctx, data.p).then((g) => {return g})
+        if (goal === null) {
+            ctx.reply('Цель не найдена')
+            return
+        }
+
         let owner = ctx.session.SGUser
         const isMyGoal = (owner.get('id') === goal.get('owner').id)
         
@@ -87,11 +92,12 @@ const goalViewAction = async(ctx, goalId) => __awaiter(void 0, void 0, void 0, f
         }
     
         yield ctx.replyWithHTML(
-            (goal.get('code') && goal.get('code')!=='' ? `<i>Код:</i>\r\n    <b>${goal.get('code')}</b>\r\n` : '')
-            + `<i>Наименование:</i>\r\n    <b>${goal.get('title')}</b>`
-            + `\r\n<i>Текст:</i>\r\n    ${goal.get('text')}`
-            + (goal.get('contract') ? `\r\n<i>Мой контракт:</i>\r\n    ${goal.get('contract').toString()}` : '')
-            + (isMyGoal ? '' : `\r\n<i>Автор:</i>\r\n    ${owner.get('email').replace(/@.+$/, '')}`)
+            (goal.get('code') && goal.get('code')!=='' ? `Код:\r\n    <code>${goal.get('code')}</code>\r\n` : '')
+            + `Наименование:\r\n    <b>${goal.get('title')}</b>`
+            + `\r\nТекст:\r\n    ${goal.get('text')}`
+            + (goal.get('contract') ? `\r\nМой контракт:\r\n    ${goal.get('contract').toString()}` : '')
+            + (isMyGoal ? '' : `\r\nАвтор:\r\n    ${owner.get('email').replace(/@.+$/, '')}`)
+            + `\r\nСсылка:\r\n    <code>` + goal.getLink(ctx) + `</code>`
         )
     
         yield ctx.reply('Действия:', keyboard)
@@ -111,24 +117,13 @@ const joinGoalAction = async(ctx, goalData) => __awaiter(void 0, void 0, void 0,
     let data = (typeof goalData).toLowerCase() === 'string'
         ? {p: goalData} : (ctx.callbackQuery ? JSON.parse(ctx.callbackQuery.data) : null)
 
-    const matches = goalData.query.match(/\/contract\s+(?<goal>[^ ]+)\s+(?<contract>.+)$/)
+    const matches = goalData.query.match(/\/contract\s+(?<goal>[^\s]+)\s+(?<contract>.+)$/)
     let goal = null
     let contractData
     if (matches && matches.groups) {
-        // Если цель задана
-        if (matches.groups.goal) {
-            // Если цель задана в формате <owner>:<goal_code>
-            if (matches.groups.goal.match(/^[^:]+:[^:]+$/)) {
-                const sub_matches = matches.groups.goal.match(/(?<owner>[^:]+):(?<code>.+)$/)
-                if (sub_matches && sub_matches.groups) {
-                    goal = yield (new Goal.default()).findByOwnerAndCode(ctx, sub_matches.groups)
-                }
-            } else {
-                goal = yield (new Goal.default()).findByOwnerAndCode(ctx, {
-                    owner: ctx.session.SGUser.get('email').replace(/@.+/, ''),
-                    code: matches.groups.goal
-                })
-            }
+        // Пытаемся определить цель
+        if (matches.groups.goal && typeof matches.groups.goal !== 'undefined') {
+            goal = yield (new Goal.default()).find(ctx, matches.groups.goal)
         }
     
         // Если контракт задан
@@ -143,16 +138,17 @@ const joinGoalAction = async(ctx, goalData) => __awaiter(void 0, void 0, void 0,
     
         // Если цель определена
         if (goal !== null && contractData !== null) {
-            const owner = (new User.default()).set(goal.get('owner'))
-            let contract = yield (new Contract.default()).findByGoalAndOwner(ctx, goal.get('id'), owner.get('id'))
+            // const owner = (new User.default()).set(goal.get('owner'))
+            let contract = yield (new Contract.default()).findByGoalAndOwner(ctx, goal.get('id'), ctx.session.SGUser.get('id'))
         
             // Если контракт по этой цели у этого пользователя уже был
             if (contract !== null) {
                 logger.default.debug(ctx, 'По этой цели у этого пользователя уже есть контракт')
                 ctx.reply('По этой цели у Вас уже есть контракт. Для изменения контракта воспользуйтесь командой /contracts из главного раздела или кнопкой "Контракты" в главном меню')
             } else {
+                contractData.goal = {id: goal.get('id')}
                 contract = (new Contract.default()).set(contractData)
-                yield contract.save()
+                yield contract.save(ctx)
                 ctx.reply('Данные контракта сохранены')
             }
         } else {
@@ -233,7 +229,7 @@ const editContractAction = async(ctx, goal) => __awaiter(void 0, void 0, void 0,
     }
     
     if (data !== null) {
-        goal = yield (new Goal.default()).findById(ctx, data.p)
+        goal = yield (new Goal.default()).find(ctx, data.p)
         ctx.session.updatingGoalId = goal.get('id')
         ctx.session.state = 'enterUpdatingGoalContract'
     } else {
@@ -277,7 +273,7 @@ exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, functio
             currentGoals = ctx.session.goals
             goal = currentGoals[ctx.session.newGoalId]
         } else if (ctx.session.state.match(/UpdatingGoal/)) {
-            goal = yield (new Goal.default()).findById(ctx, ctx.session.updatingGoalId)
+            goal = yield (new Goal.default()).find(ctx, ctx.session.updatingGoalId)
         }
     }
 
@@ -412,7 +408,7 @@ exports.newGoalSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function
     
     // Сетим айдишник цели в объекте контракта
     const newContract = newGoal.get('contract')
-    newContract.set({goal_id: ret.get('id')})
+    newContract.set({goal: {id: ret.get('id')}})
     newContract.save(ctx)
     ctx.reply('Контракт подписан')
     

@@ -446,6 +446,7 @@ let controller = {
             ctx.body = contract.toClient();
         } else {
             ctx.status = 404
+            ctx.body = {error: 404, message: 'Contracts not found'}
         }
     },
     

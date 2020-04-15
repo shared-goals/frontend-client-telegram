@@ -89,7 +89,7 @@ function newGoalViewKeyboard(ctx) {
     const defaults = {
         icons: {
             check: {
-                empty: '⭕ ',
+                empty: '▫️ ',
                 checked: '✅ '
             }
         }
@@ -103,15 +103,15 @@ function newGoalViewKeyboard(ctx) {
 
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
         [
-            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('code') === null || newGoal.get('code') === '' ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_code.button_text'), 'setNewGoalCode', false),
             m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('title') === null || newGoal.get('title') === '' ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_title.button_text'), 'setNewGoalTitle', false)
+                + ctx.i18n.t('scenes.goals.set_title.button_text'), 'setNewGoalTitle', false),
+            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('code') === null || newGoal.get('code') === '' ? 'empty' : 'checked']
+                + ctx.i18n.t('scenes.goals.set_code.button_text'), 'setNewGoalCode', false)
         ], [
-            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('text') === null || newGoal.get('text') === '' ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_description.button_text'), 'setNewGoalDescription', false),
             m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('contract').get('ready') === false ? 'empty' : 'checked']
-                + ctx.i18n.t('scenes.goals.set_occupation.button_text'), 'setNewGoalContract', false)
+                + ctx.i18n.t('scenes.goals.set_occupation.button_text'), 'setNewGoalContract', false),
+            m.callbackButton(defaults.icons.check[!newGoal || newGoal.get('text') === null || newGoal.get('text') === '' ? 'empty' : 'checked']
+                + ctx.i18n.t('scenes.goals.set_description.button_text'), 'setNewGoalDescription', false)
         ],
         [
             m.callbackButton(ctx.i18n.t('scenes.submit.button_text'), 'newGoalSubmit', false),

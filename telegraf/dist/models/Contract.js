@@ -195,13 +195,17 @@ function Contract (data) {
      */
     self.findByGoalAndOwner = async(ctx, goal, owner) => __awaiter(void 0, void 0, void 0, function* () {
         // Отправляем запрос на получение информаии о цели
-        yield req.make(ctx, 'contracts/' + goal + '/' + owner, {
+        return yield req.make(ctx, 'contracts/' + goal + '/' + owner, {
             method: 'GET',
         }).then( (response) => {
-            self.set(response)
+            if (!response.error) {
+                return self.set(response)
+            } else {
+                return null
+            }
+        }).catch( (reason) => {
+            return null
         })
-        
-        return self
     })
     
     /**
