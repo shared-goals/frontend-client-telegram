@@ -176,7 +176,7 @@ bot.hears(/help/, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
 
     let str = ''
     examples.forEach((example) => {
-        str += `<code>${example.cmd}</code>\r\n${example.info}\r\n`
+        str += `<code>${example.cmd}</code>\r\n${example.info}\r\n\r\n`
     })
     ctx.replyWithHTML(str)
 }))

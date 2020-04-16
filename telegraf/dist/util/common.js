@@ -221,7 +221,7 @@ const magickDataUnFlatten = function (arr, opts) {
 exports.magickDataUnFlatten = magickDataUnFlatten
 
 /**
- * Разбираеn переданные через контекст или директ-коллом аргументы и возвращает объект
+ * Разбирает переданные через контекст или директ-коллом аргументы и возвращает объект
  *
  * @param ctx
  * @param data
