@@ -8,7 +8,7 @@ const Commit = require("../../models/Commit")
 /**
  * Генерирует главное меню сцены "Контракты" - меню со списком своих контрактов
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @param contracts
  * @returns {*|ExtraEditMessage}
  */
@@ -17,7 +17,7 @@ function contractsListKeyboard(ctx, contracts) {
         (contracts || []).map((contract) => {
             return [m.callbackButton(contract.get('goal').title
                 + (contract.get('goal').code ? ' (' + contract.get('goal').code + ')' : '')
-                + ': ' + contract.toString(), JSON.stringify({ a: 'contractView', p: contract.get('id') }), false)]
+                + ': ' + contract.toString(), JSON.stringify({ a: 'contractView', p: contract.get('goal').id }), false)]
         }), {}))
 }
 
@@ -26,7 +26,7 @@ exports.contractsListKeyboard = contractsListKeyboard
 /**
  * Генерирует главное меню сцены "Контракты" - меню со списком своих контрактов
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @param contracts
  * @returns {*|ExtraEditMessage}
  */
@@ -80,15 +80,15 @@ exports.newCommitViewKeyboard = newCommitViewKeyboard
 /**
  * Генерирует меню с кнопками для режима просмотра своей цели
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @param contract
  * @returns {*|ExtraEditMessage}
  */
 function contractViewKeyboard(ctx, contract) {
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
         [
-            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.edit_contract.button_text'), JSON.stringify({ a: 'editContract', p: contract.get('id') }), false),
-            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.set_commit.button_text'), JSON.stringify({ a: 'setCommit', p: contract.get('id') }), false)
+            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.edit_contract.button_text'), JSON.stringify({ a: 'editContract', p: contract.get('goal').id }), false),
+            m.callbackButton(ctx.i18n.t('scenes.goals.view_goal.set_commit.button_text'), JSON.stringify({ a: 'setCommit', p: contract.get('goal').id }), false)
         ]
     ], {}))
 }

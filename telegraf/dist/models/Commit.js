@@ -38,6 +38,13 @@ function Commit (data) {
     }
     
     /**
+     * Регулярка разбора короткой команды: /commit [<owner>/]<code> <duration> "<whats_done>"[ "<whats_next>"]
+     * Пример: /commit ewgeniyk/sg 1h 20min "Some fixes" "Finish /commit"
+     * @type {RegExp}
+     */
+    self.re = /((?<owner>[^/\s]+)\/)?(?<code>[^\s]+)\s+((?<hours>\d+)\s*(h|hr)\s+)?((?<minutes>\d+)\s*(m|min)\s+)?("(?<whats_done>[^"]+)")\s*("(?<whats_next>[^"]+)")?$/
+    
+    /**
      *
      * @param data
      * @returns {Commit}
@@ -109,8 +116,17 @@ function Commit (data) {
     self.save = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
         // Определяем данные для вставки или апдейта
         self.set({owner: { id: ctx.session.SGUser.get('id')}})
+
+        // Фиксируем текущую дату срабатывания в контракте и вычисляем следующую дату по контракту, сэйвим в контракт
+        const contract = self.get('contract')
+        contract.set({
+            last_run: contract.calcLastRun(),
+            next_run: contract.calcNextRun()
+        })
+        console.log(contract)
+        contract.save(ctx)
+        
         const data = self.plain()
-        console.log(data)
         
         // Если был определен айдишник - это апдейт
         if (self.get('id') !== null && typeof self.get('id') !== 'undefined') {

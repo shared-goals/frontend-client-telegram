@@ -18,7 +18,6 @@ Object.defineProperty(exports, "__esModule", { value: true })
  * @param next - next function
  */
 exports.isAdmin = (ctx, next) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(ctx.message.text)
     const password = ctx.message.text.split(' ')[1]
     if (process.env.ADMIN_IDS.indexOf(ctx.from.id) !== false && password === process.env.ADMIN_PASSWORD) {
         return next()

@@ -24,14 +24,13 @@ const req = __importDefault(require("../util/req"))
 /**
  * Проверяет текущие значения сессии по хэшу авторизации и SG-объекту пользователя.
  * При их отсутствии делает все необходимые запросы в SGAPI и сетит значения в сессию.
- * @param ctx - telegram context
- * @param next - next function
+ *
+ * @param ctx - Объект контекста
+ * @param next - next-функция
  */
 const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* () {
     // Смотрим текущий хэш в сессии
     let hash = ctx.session.SGAuthToken
-    
-    // ctx.i18n.locale(ctx.session.language)
     
     const now = new Date().getTime()
     const newUser = new User.default({

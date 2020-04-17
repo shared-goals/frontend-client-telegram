@@ -20,7 +20,6 @@ const helpers = require("./helpers")
 const common = __importDefault(require("../../util/common"))
 const logger = __importDefault(require("../../util/logger"))
 const session = __importDefault(require("../../util/session"))
-const keyboards = require("../../util/keyboards")
 const Goal = require("../../models/Goal")
 const User = require("../../models/User")
 const Contract = require("../../models/Contract")
@@ -30,7 +29,7 @@ let shortcuts = {}
 
 /**
  *
- * @param ctx
+ * @param ctx - Объект контекста
  */
 const newGoalViewAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const newGoalViewKeyboard = helpers.newGoalViewKeyboard(ctx)
@@ -42,7 +41,7 @@ exports.newGoalViewAction = newGoalViewAction
 
 /**
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @param user User
  */
 const goalsListViewAction = (ctx, user) => __awaiter(void 0, void 0, void 0, function* () {
@@ -51,7 +50,6 @@ const goalsListViewAction = (ctx, user) => __awaiter(void 0, void 0, void 0, fun
     
     // достаем объекты всех записей текущего юзера
     let goals = yield (new Goal.default()).findAll(ctx, settedUser ? user.get('id') : null)
-    console.log(goals)
     
     if (!goals || goals.length === 0) {
         ctx.reply((settedUser
@@ -68,11 +66,11 @@ exports.goalsListViewAction = goalsListViewAction
 
 /**
  *
- * @param ctx
+ * @param ctx - Объект контекста
  */
-const goalViewAction = async(ctx, goalId) => __awaiter(void 0, void 0, void 0, function* () {
-    let data = (typeof goalId).toLowerCase() === 'string'
-        ? {p: goalId} : (ctx.callbackQuery ? JSON.parse(ctx.callbackQuery.data) : null)
+const goalViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0, function* () {
+    // Разбираем переданные через контекст или директ-коллом аргументы
+    data = common.getCallArguments(ctx, data)
 
     if (data !== null) {
         const goal = yield (new Goal.default()).find(ctx, data.p).then((g) => {return g})
@@ -111,7 +109,7 @@ exports.goalViewAction = goalViewAction
 
 /**
  *
- * @param ctx
+ * @param ctx - Объект контекста
  */
 const joinGoalAction = async(ctx, goalData) => __awaiter(void 0, void 0, void 0, function* () {
     let data = (typeof goalData).toLowerCase() === 'string'
@@ -166,7 +164,7 @@ exports.joinGoalAction = joinGoalAction
 
 /**
  *
- * @param ctx
+ * @param ctx - Объект контекста
  */
 exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
     let goals = null
@@ -211,22 +209,13 @@ exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0,
 
 /**
  *
- * @param ctx
- * @param goal
+ * @param ctx - Объект контекста
+ * @param data
  */
-const editContractAction = async(ctx, goal) => __awaiter(void 0, void 0, void 0, function* () {
-    let data = null
-    if ((typeof goal).toLowerCase() === 'string') {
-        data = {p: goal}
-    } else if (ctx.callbackQuery) {
-        if (ctx.callbackQuery.data.match(/^\{.*\}$/)) {
-            try {
-                data = JSON.parse(ctx.callbackQuery.data)
-            } catch (e) {
-                console.error(e)
-            }
-        }
-    }
+const editContractAction = async(ctx, data) => __awaiter(void 0, void 0, void 0, function* () {
+    // Разбираем переданные через контекст или директ-коллом аргументы
+    data = common.getCallArguments(ctx, data)
+    let goal = null
     
     if (data !== null) {
         goal = yield (new Goal.default()).find(ctx, data.p)
@@ -249,11 +238,11 @@ exports.editContractAction = editContractAction
 /**
  * Обрабатывает ввод произвольных строк с консоли
  *
- * @param ctx
+ * @param ctx - Объект контекста
  */
 exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const text = ctx.match.input
-    logger.default.debug(ctx, 'Goals default Handler:', text)
+    logger.default.debug(ctx, 'Goals default Handler:', text, ', storedObjectId:', ctx.session.updatingGoalId)
     
     // Смотрим короткие команды, если надены какая-то из них - выполняем и уходим
     if ((yield common.checkShortcuts(ctx, text, shortcuts)) === true) {
@@ -286,6 +275,7 @@ exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, functio
             // Ввод параметров для апдейта существующей цели
 
             case 'enterUpdatingGoalContract': {
+                console.log('67413657842365782436579823467589234657892346572934')
                 if (!goal) {
                     return
                 }

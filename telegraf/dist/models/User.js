@@ -71,7 +71,7 @@ function User (data) {
     
     self.findByEmail = async(ctx, email) => __awaiter(void 0, void 0, void 0, function* () {
         // Отправляем запрос на получение информаии о пользователе
-        const ret = yield req.make(ctx, 'users/email/' + email, {
+        const ret = yield req.make(ctx, 'users/email/' + encodeURIComponent(email), {
             method: 'GET'
         }).then( (response) => {
             self.set(response)

@@ -244,6 +244,8 @@ let controller = {
             contract.duration = ctx.request.body.duration
             contract.week_days = ctx.request.body.week_days || []
             contract.month_days = ctx.request.body.month_days || []
+            contract.next_run = ctx.request.body.next_run
+            contract.last_run = ctx.request.body.last_run
             
             contract.goal = ctx.request.body.goal.id;
             contract.owner = ctx.request.body.owner.id;

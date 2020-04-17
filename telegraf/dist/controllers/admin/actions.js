@@ -14,38 +14,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod }
 }
 
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod
-    var result = {}
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k]
-    result["default"] = mod
-    return result
-}
-
 Object.defineProperty(exports, "__esModule", { value: true })
 
 require('dotenv').config()
 
 // Main libs
-const I18n = require("telegraf-i18n")
 const fs = require('fs')
 
 const helpers = require("./helpers")
 const common = __importDefault(require("../../util/common"))
-const logger = __importDefault(require("../../util/logger"))
-const session = __importDefault(require("../../util/session"))
-const keyboards = require("../../util/keyboards")
-const Goal = require("../../models/Goal")
-const Contract = require("../../models/Contract")
-const User = require("../../models/User")
-const req = __importDefault(require("../../util/req"))
-
-let shortcuts = {}
-exports.shortcuts = shortcuts
 
 /**
+ * Проверяет наличие одних и тех же ключей в файлах переводов различных локалей.
+ * При отсутствии где-то каких-то ключей синхронизирует структуры в файлах локалей, вставляя строки
+ * из существующих переводов на другом языке. Сохраняет новые файлы поверх старых
  *
- * @param ctx
+ * @param ctx - Объект контекста
  */
 const checkTranslationsAction = (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const paths = {}
@@ -93,6 +77,14 @@ const checkTranslationsAction = (ctx) => __awaiter(void 0, void 0, void 0, funct
 
 exports.checkTranslationsAction = checkTranslationsAction
 
+/**
+ * Синхронизирует структуры в файлах локалей, вставляя строки из существующих переводов на другом языке.
+ * Сохраняет новые файлы поверх старых.
+ *
+ * @param ctx - Объект контекста
+ * @param what - Объект параметров: {from: <lang_from>, to: <lang_to>}
+ * @returns {*|{}}
+ */
 const convertTranslationsAction = (ctx, what) => {
     const lang_from = what.from
     const lang_to = what.to
@@ -111,4 +103,4 @@ const convertTranslationsAction = (ctx, what) => {
     })
     
     return common.magickDataUnFlatten(flattenRepos.from, {divider: '/'})
-}
+};

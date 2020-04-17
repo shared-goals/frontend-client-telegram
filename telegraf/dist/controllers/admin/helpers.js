@@ -16,13 +16,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
-const User_1 = __importDefault(require("../../models/User"))
 const telegram = __importDefault(require("../../telegram"))
 const Telegraf = require("telegraf")
 
 /**
  * Генерирует главное меню сцены "Админ"
- * @param ctx
+ *
+ * @param ctx - Объект контекста
  * @returns {*|ExtraEditMessage}
  */
 function getInitKeyboard(ctx) {
@@ -36,33 +36,48 @@ function getInitKeyboard(ctx) {
 exports.getInitKeyboard = getInitKeyboard
 
 /**
- * Write message to a specific user or to all existing users
- * @param ctx - telegram context
- * @param recipient - id or 'all.language'
- * @param message - text to write
+ * Отправляет сообщение конкретному или всем пользователям
+ *
+ * @param ctx - Объект контекста
+ * @param recipient - Идентификатор пользователя для личного сообщения или 'all.language' для общего
+ * @param message - Отправляемый текст
  */
 function write(ctx, recipient, message) {
     return __awaiter(this, void 0, void 0, function* () {
+        // Если айдишник пользователя - число
         if (!Number.isNaN(+recipient) && recipient.length >= 6) {
-            // Write to a single user
+            // Пишем сообщение пользователю
             yield telegram.default.sendMessage(Number(recipient), message)
             yield ctx.reply(`Successfully sent message to: ${recipient}, content: ${message}`)
         }
+        // Иначе, если пишем всем пользователям:
         else if (recipient.includes('all')) {
-            // Write to everyone
+            // Определяем доступные языки
             const SUPPORTED_LANGUAGES = ['en', 'ru']
             const language = recipient.split('.')[1]
+            
+            // Если указан недоступный язык - пишем ошибку и выходим
             if (!SUPPORTED_LANGUAGES.includes(language)) {
                 yield ctx.reply(`Unsupported language ${language}`)
-                return
+                return true
             }
-            const users = yield User_1.default.find({ language }) // Filter by language
-            users.forEach((user, index) => {
-                setTimeout(() => {
-                    telegram.default.sendMessage(Number(user._id), message)
-                }, 200 * (index + 1))
-            })
-            yield ctx.reply(`Sending message to everyone is in process, content: ${message}`)
+            
+            // Иначе запрашиваем всех пользователей, имеющих в настройках соответствующий язык
+            // const users = yield User_1.default.find({ language }) // Filter by language
+            const users = []
+
+            // Если пользователи есть
+            if (users.length > 0) {
+                
+                // Шлем всем сообщения с таймаутом
+                users.forEach((user, index) => {
+                    setTimeout(() => {
+                        telegram.default.sendMessage(Number(user._id), message)
+                    }, 200 * (index + 1))
+                })
+    
+                yield ctx.reply(`Sending message to everyone is in process, content: ${message}`)
+            }
         }
         else {
             // Recipient wasn't specified correctly
@@ -74,30 +89,9 @@ function write(ctx, recipient, message) {
 exports.write = write
 
 /**
- * Get users statistics
- * @param ctx - telegram context
- */
-function getStats(ctx) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const date = new Date()
-        const year = date.getFullYear()
-        const month = date.getMonth()
-        const day = date.getDate()
-        const epochTime = new Date(year, month, day).getTime()
-        const allUsers = yield User_1.default.count({})
-        const createdToday = yield User_1.default.find({ created: { $gte: epochTime } }).count()
-        const activeToday = yield User_1.default.find({ lastActivity: { $gte: epochTime } }).count()
-        yield ctx.reply(`Amount of users: ${allUsers}\n` +
-            `New users: ${createdToday}\n` +
-            `Active users: ${activeToday}`)
-    })
-}
-
-exports.getStats = getStats
-
-/**
- * Display help menu
- * @param ctx - telegram context
+ * Отображает меню админки
+ *
+ * @param ctx - Объект контекста
  */
 function getHelp(ctx) {
     return __awaiter(this, void 0, void 0, function* () {

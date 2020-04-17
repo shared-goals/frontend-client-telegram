@@ -7,7 +7,7 @@ const Goal = require("../../models/Goal")
 
 /**
  * Генерирует главное меню сцены "Цели"
- * @param ctx
+ * @param ctx - Объект контекста
  * @returns {*|ExtraEditMessage}
  */
 function getInitKeyboard(ctx) {
@@ -27,7 +27,7 @@ exports.getInitKeyboard = getInitKeyboard
 /**
  * Генерирует меню с кнопками для режима просмотра своей цели
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @param goal
  * @returns {*|ExtraEditMessage}
  */
@@ -45,7 +45,7 @@ exports.goalMyViewKeyboard = goalMyViewKeyboard
 /**
  * Генерирует меню с кнопками для режима просмотра чужой цели
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @param goal
  * @returns {*|ExtraEditMessage}
  */
@@ -65,7 +65,7 @@ exports.goalAnyViewKeyboard = goalAnyViewKeyboard
 /**
  * Генерирует сет кнопок списка целей
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @param goals
  * @returns {*|ExtraEditMessage}
  */
@@ -82,7 +82,7 @@ exports.goalsListKeyboard = goalsListKeyboard
 /**
  * Генерирует меню ввода параметров новой создаваемой цели
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @returns {*|ExtraEditMessage}
  */
 function newGoalViewKeyboard(ctx) {

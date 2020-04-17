@@ -50,7 +50,7 @@ let controller = {
             return next();
         } catch (err) {
             ctx.status = 404;
-            ctb.body = '{error: 404}'
+            ctx.body = {error: 404, message: 'User not found'}
         }
     },
     
@@ -85,14 +85,15 @@ let controller = {
         let email = decodeURIComponent(ctx.request.url.replace(/\/users\/email\//, ''))
         try{
             ctx.user = await User.findOne({email: email}).exec();
+            console.log(ctx.user)
             if(!ctx.user) {
-                ctx.body = JSON.stringify({error: 404, message: 'User not found'})
+                ctx.body = {error: 404, message: 'User not found'}
                 return ctx.status = 404;
             }
             ctx.body = ctx.user.toClient();
         } catch (err) {
             ctx.status = 404;
-            ctx.body = JSON.stringify({error: 404, message: 'User not found'})
+            ctx.body = {error: 404, message: 'User not found'}
         }
     },
     

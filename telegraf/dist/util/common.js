@@ -22,6 +22,10 @@ const lodash = require("lodash")
 const logger = __importDefault(require("./logger"))
 const session = require("./session")
 
+const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+exports.weekdays = weekdays
+exports.short_weekdays = weekdays.map((item) => item.substr(0, 3))
+
 /**
  * Pauses execution for given amount of seconds
  * @param sec - amount of seconds
@@ -90,7 +94,7 @@ exports.checkStringSimilarity = checkStringSimilarity;
 
 /**
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @param text
  * @param shortcuts
  * @returns {boolean}
@@ -223,7 +227,7 @@ exports.magickDataUnFlatten = magickDataUnFlatten
 /**
  * Разбирает переданные через контекст или директ-коллом аргументы и возвращает объект
  *
- * @param ctx
+ * @param ctx - Объект контекста
  * @param data
  * @returns {{}}|null
  */

@@ -31,7 +31,6 @@ require('./models')
 // Core libs
 const fs = __importDefault(require("fs"))
 const path = __importDefault(require("path"))
-const util = __importDefault(require('util'))
 
 // Main libs
 const Telegraf = __importStar(require("telegraf"))
@@ -43,9 +42,7 @@ const Session = __importDefault(require("telegraf/session"))
 const reqPromise = __importDefault(require("request-promise"))
 
 // Utils
-const common = __importDefault(require("./util/common"))
 const logger = __importDefault(require("./util/logger"))
-const notifier = require("./util/notifier")
 const errorHandler = __importDefault(require("./util/error-handler"))
 const keyboards = require("./util/keyboards")
 const session = require("./util/session")
@@ -145,13 +142,6 @@ bot.hears(/(.*admin)/, adminConsole.isAdmin, errorHandler.default((ctx) => __awa
     return yield ctx.scene.enter('admin')
 })))
 
-// Определяем команду ресета
-bot.command('saveme', (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    logger.default.debug(ctx, 'User uses /saveme command')
-    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
-    yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
-}))
-
 // На любую ошибку отвечаем выводом стартовой страницы
 bot.start(errorHandler.default((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     return ctx.scene.enter('start')
@@ -250,7 +240,6 @@ function startProdMode(bot) {
         })
         yield bot.startWebhook(`/${process.env.TELEGRAM_TOKEN}`, tlsOptions, +process.env.WEBHOOK_PORT)
         const webhookStatus = yield telegram.default.getWebhookInfo()
-        console.log('Webhook status', webhookStatus)
-        notifier.checkUnreleasedMovies()
+        logger.default.debug(undefined, 'Webhook status', webhookStatus)
     })
 };

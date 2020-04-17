@@ -20,9 +20,10 @@ const req = __importDefault(require("../util/req"))
 Object.defineProperty(exports, "__esModule", { value: true })
 
 /**
- * Updated last activity timestamp for the user in database
- * @param ctx - telegram context
- * @param next - next function
+ * Сохраняет время последней активности пользователя в БД
+ *
+ * @param ctx - Объект контекста
+ * @param next - next-функция
  */
 exports.updateUserTimestamp = (ctx, next) => __awaiter(void 0, void 0, void 0, function* () {
     yield req.make(ctx, 'users/' + ctx.session.SGUser.get('id'), {
