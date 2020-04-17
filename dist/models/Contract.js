@@ -16,9 +16,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
-const moment = __importDefault(require('moment'))
-
-const common = __importDefault(require("../util/common"))
 const logger = __importDefault(require("../util/logger"))
 const req = __importDefault(require("../util/req"))
 
@@ -70,86 +67,21 @@ function Contract (data) {
      *   10m every day
      *   3h every sat,sun
      *   10h every week
+     *
      * @param ctx
      * @param txt
+     * @return {{}}
      */
-    self.validateFormat = (ctx, txt) => {
-        const mins_variants = ('m|min|mins|minutes|' + ctx.i18n.t('min_plur')).split('|')
-        const hours_variants = ('h|hour|hours|' + ctx.i18n.t('hour_plur')).split('|')
-        
-        let regStr = '^(\\d+)\\s*('
-            + mins_variants.join('|')
-            + '|' + hours_variants.join('|')
-            + '|' + ctx.i18n.t('min_plur') + '|' + ctx.i18n.t('hour_plur') + ')'
-            + '\\s+(every|' + ctx.i18n.t('every_plur') + ')\\s+(('
-            + 'day|' + ctx.i18n.t('day')
-            + '|week|' + ctx.i18n.t('week_plur')
-            + '|month|' + ctx.i18n.t('month')
-            + '|' + common.weekdays.join('|')
-            + '|' + common.short_weekdays.join('|')
-            + '|' + common.weekdays.map((item) => ctx.i18n.t(item)).join('|')
-            + '|\\d+|\\d+,\\d+|,){1,13})$'
-        
-        let re = new RegExp(regStr, 'gi')
-        let data = re.exec(txt)
-        let ret
-        if (data !== null) {
-            ret = self.parseText(ctx, data.slice(1, 5))
-        } else {
-            ret = null
-        }
-        return ret
-    }
-    
-    /**
-     * Парсит исходный формат занятости и возвращает форматированный для хранения в БД
-     * @param ctx
-     * @param data введенный формат занятости. Пример: Array ['20', 'min', 'every', 'mon,sat]
-     * @returns {{}}
-     */
-    self.parseText = (ctx, data) => {
-        const mins_variants = ('m|min|mins|minutes|' + ctx.i18n.t('min_plur')).split('|')
-        const hours_variants = ('h|hour|hours|' + ctx.i18n.t('hour_plur')).split('|')
-    
-        let ret = {
-            duration: null,
-            week_days: [],
-            month_days: []
-        }
-    
-        if (mins_variants.indexOf(data[1]) !== -1) {
-            ret.duration = data[0]
-        } else if (hours_variants.indexOf(data[1]) !== -1) {
-            ret.duration = data[0] * 60
-        }
-    
-        let days = data[3].replace(/\s/, '').replace(/[;|]/, ',').split(',')
-    
-        let local_weekdays = common.weekdays.map((item) => ctx.i18n.t(item))
-
-        days.forEach((day) => {
-            if (day === 'day' || day === ctx.i18n.t('day')) {
-                ret.week_days = common.short_weekdays
-            } else if(day.match(/^\d+$/)) {
-                ret.month_days.push(parseInt(day, 10))
-            } else {
-                let idx = common.weekdays.indexOf(day) !== -1
-                    ? common.weekdays.indexOf(day)
-                    : (common.short_weekdays.indexOf(day) !== -1
-                        ? common.short_weekdays.indexOf(day)
-                        : (local_weekdays.indexOf(day) !== -1
-                            ? local_weekdays.indexOf(day)
-                            : null))
-                if (idx !== null) {
-                    ret.week_days.push(common.short_weekdays[idx])
-                }
-            }
-        })
-        return ret
-    }
+    self.validateFormat = async(ctx, txt) => __awaiter(void 0, void 0, void 0, function* () {
+        // Отправляем запрос на валидацию строки контракта
+        return yield req.make(ctx, 'contracts/validate/' + encodeURIComponent(txt), {
+            method: 'GET',
+        }).then( (response) => response.data)
+    })
     
     /**
      * Возвращает строку параметров занятости по объекту их данных
+     *
      * @returns {string}
      */
     self.toString = () => {
@@ -170,73 +102,6 @@ function Contract (data) {
     }
     
     /**
-     * Возвращает дату сегодняшнего рабочего дня
-     *
-     * @returns {string}
-     */
-    self.calcLastRun = () => {
-        return moment.default().format('YYYY-MM-DD')
-    }
-    
-    /**
-     * Вычисляет дату следующего рабочего дня по текущему контракту после сегодняшнего
-     *
-     * @returns {string}
-     */
-    self.calcNextRun = () => {
-        let ret = null
-
-        const days = {
-            week: self.get('week_days') || [],
-            month: self.get('month_days') || []
-        }
-        
-        // Если указаны дни недели
-        if (days.week.length > 0) {
-            const currentWeekDayIdx = (moment.default().isoWeekday() - 1)
-
-            // переделываем массив названий рабочих дней недели по контракту в массив индексов, например [0, 1, 5, 7]
-            days.week = days.week.map((day) => common.short_weekdays.indexOf(day))
-            
-            // Создаем массив индексов оставшихся после сегодняшнего рабочих дней недели по контракту, например [5, 7]
-            const restWeekDays = days.week.filter((day) => day > currentWeekDayIdx)
-            
-            // Если на этой неделе по контракту есть еще рабочие дни
-            if (restWeekDays.length > 0) {
-                // возвращаем дату следующего дня по контракту
-                ret = moment.default().isoWeekday(restWeekDays[0] + 1)
-            }
-            
-            // ..., или если на этой неделе больше не осталось рабочих дней по кнтракту
-            else {
-                // возвращаем дату следующего дня по контракту как первый день недели по контракту, но на след.неделе
-                ret = moment.default().isoWeekday(days.week[0] + 1 + 7)
-            }
-        }
-        
-        // ..., или если указаны дни месяца
-        else if (days.month.length > 0) {
-            const currentDate = moment.default().date()
-            
-            // Создаем массив оставшихся после сегодняшнего рабочих дней месяца по контракту, например [21, 30]
-            const restMonthDays = days.month.filter((day) => day > currentDate)
-    
-            // Если в этом месяце по контракту есть еще рабочие дни
-            if (restMonthDays.length > 0) {
-                // возвращаем дату следующего дня по контракту
-                ret = moment.default().date(restMonthDays[0])
-            }
-    
-            // ..., или если на этой неделе больше не осталось рабочих дней по контракту
-            else {
-                // возвращаем дату следующего дня по контракту как первый день месяца по контракту, но в след.месяце
-                ret = moment.default().add(1, 'month').date(days.month[0])
-            }
-        }
-        return ret ? ret.format('YYYY-MM-DD') : ret
-    }
-    
-    /**
      *
      * @param ctx
      * @param id
@@ -251,6 +116,21 @@ function Contract (data) {
         })
         
         return self
+    })
+    
+    /**
+     *
+     * @param ctx
+     * @param user_id
+     */
+    self.findByUser = async(ctx, user_id) => __awaiter(void 0, void 0, void 0, function* () {
+        // Отправляем запрос на получение информации о контрактах пользователя
+        return yield req.make(ctx, 'users/' + (user_id || ctx.session.SGUser.get('id')) + '/contracts', {
+            method: 'GET'
+        }).then( (response) => {
+            // конвертируем записи в объекты
+            return response.map((contract) => (new Contract()).set(contract))
+        })
     })
     
     /**
@@ -278,9 +158,9 @@ function Contract (data) {
      *
      * @param ctx
      */
-    self.updateReadyState = (ctx) => {
-        self.set({ready: self.validateFormat(ctx, self.get('occupation')) !== null})
-    }
+    self.updateReadyState = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
+        self.set({ready: (yield self.validateFormat(ctx, self.get('occupation'))) !== null})
+    })
     
     /**
      * Сохранение объекта в БД. Апдейт существующей записи или вставка новой

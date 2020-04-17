@@ -236,7 +236,7 @@ const getCallArguments = (ctx, data) => {
         data =
             (typeof data).toLowerCase() === 'string'
                 ? {p: data}
-                : ((typeof data).toLowerCase() === 'object' && data.hasOwnProperty('query')
+                : (data && (typeof data).toLowerCase() === 'object' && data.hasOwnProperty('query')
                     ? {p: data.query}
                     : (ctx.callbackQuery && ctx.callbackQuery.data.match(/^\{.*\}$/)
                         ? JSON.parse(ctx.callbackQuery.data) : null))

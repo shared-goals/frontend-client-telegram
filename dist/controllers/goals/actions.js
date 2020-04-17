@@ -23,7 +23,6 @@ const session = __importDefault(require("../../util/session"))
 const Goal = require("../../models/Goal")
 const User = require("../../models/User")
 const Contract = require("../../models/Contract")
-const req = __importDefault(require("../../util/req"))
 
 let shortcuts = {}
 
@@ -127,7 +126,7 @@ const joinGoalAction = async(ctx, goalData) => __awaiter(void 0, void 0, void 0,
         // Если контракт задан
         if (matches.groups.contract) {
             // Пытаемся распарсить строку контракта
-            contractData = (new Contract.default()).validateFormat(ctx, matches.groups.contract)
+            contractData = yield ((new Contract.default()).validateFormat(ctx, matches.groups.contract))
             if (!contractData) {
                 logger.default.error(ctx, 'Ошибка парсинга строки контракта')
                 ctx.reply('Ошибка. Некорректно задана строка контракта: ' + matches.groups.contract)
@@ -191,7 +190,7 @@ exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0,
             break
         }
         case 'setNewGoalDescription': {
-            ctx.reply(ctx.i18n.t('scenes.goals.create_new.set_description.text'))
+            ctx.reply(ctx.i18n.t('scenes.goals.create_new.set_text.text'))
             ctx.session.state = 'enterNewGoalDescription'
             break
         }
@@ -275,10 +274,6 @@ exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, functio
             // Ввод параметров для апдейта существующей цели
 
             case 'enterUpdatingGoalContract': {
-                console.log('67413657842365782436579823467589234657892346572934')
-                if (!goal) {
-                    return
-                }
                 // Подгружаем экшны контрактов
                 const contractsActions = require('../contracts/actions')
 
@@ -346,10 +341,9 @@ exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, functio
                 // Подгружаем экшны контрактов
                 const contractsActions = require('../contracts/actions')
 
-                const contract = goal.get('contract')
+                let contract = goal.get('contract')
                 const ret = yield contractsActions.setContractInStoredObject(ctx, contract, text)
                 if (ret !== false) {
-                    contract.save(ctx)
                     goal.set({contract: contract})
                     goal.updateReadyState(ctx)
 
@@ -388,9 +382,7 @@ exports.newGoalSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function
 
     if (!ctx.session.SGUser) {
         logger.default.debug(ctx, 'user isn\'t defined')
-        return yield req.make('sendMessage', {
-            text: ctx.i18n.t('errors.goals.user_not_defined')
-        })
+        ctx.reply(ctx.i18n.t('errors.goals.user_not_defined'))
     }
     
     const ret = yield newGoal.save(ctx)

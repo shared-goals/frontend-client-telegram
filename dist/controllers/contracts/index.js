@@ -19,7 +19,6 @@ Object.defineProperty(exports, "__esModule", { value: true })
 const I18n = require("telegraf-i18n")
 const Stage = __importDefault(require("telegraf/stage"))
 const baseScene = __importDefault(require("telegraf/scenes/base"))
-const helpers = require("./helpers")
 const actions = require("./actions")
 const keyboards = require("../../util/keyboards")
 const session = require("../../util/session")
@@ -27,7 +26,6 @@ const common = require("../../util/common")
 const logger = __importDefault(require("../../util/logger"))
 const { leave } = Stage.default
 const contracts = new baseScene.default('contracts')
-exports.shortCommands = ['contract']
 
 // Устанавливаем короткие команды для этого контроллера
 actions.setShortcuts({

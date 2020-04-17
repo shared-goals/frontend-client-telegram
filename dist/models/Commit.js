@@ -119,11 +119,6 @@ function Commit (data) {
 
         // Фиксируем текущую дату срабатывания в контракте и вычисляем следующую дату по контракту, сэйвим в контракт
         const contract = self.get('contract')
-        contract.set({
-            last_run: contract.calcLastRun(),
-            next_run: contract.calcNextRun()
-        })
-        console.log(contract)
         contract.save(ctx)
         
         const data = self.plain()

@@ -17,7 +17,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const logger = __importDefault(require("../util/logger"))
-const helpers = __importDefault(require("../controllers/goals/helpers"))
 const req = __importDefault(require("../util/req"))
 const User = __importDefault(require("./User"))
 const Contract = __importDefault(require("./Contract"))

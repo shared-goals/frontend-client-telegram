@@ -115,7 +115,7 @@ function newGoalViewKeyboard(ctx) {
                 'setNewGoalCode', false)
         ], [
             m.callbackButton(
-                (!newGoal || newGoal.get('occupation') === null || newGoal.get('occupation') === '' || typeof newGoal.get('occupation') === 'undefined'
+                (!newGoal || !newGoal.get('contract') || newGoal.get('contract').get('ready') === false
                     ? defaults.icons.check['empty'] + ctx.i18n.t('scenes.goals.create_new.set_occupation.button_text')
                     : defaults.icons.check['checked'] + ctx.i18n.t('scenes.goals.create_new.edit_occupation.button_text')),
                 'setNewGoalContract', false),

@@ -26,11 +26,8 @@ const keyboards = require("../../util/keyboards")
 const Goal = require("../../models/Goal")
 const Contract = require("../../models/Contract")
 const Commit = require("../../models/Commit")
-const User = require("../../models/User")
-const req = __importDefault(require("../../util/req"))
 
 let shortcuts = {}
-exports.shortcuts = shortcuts
 
 /**
  *
@@ -39,12 +36,7 @@ exports.shortcuts = shortcuts
 const contractsListViewAction = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
     yield ctx.reply(ctx.i18n.t('scenes.contracts.list_all.fetching'))
     
-    let contracts = yield req.make(ctx, 'users/' + ctx.session.SGUser.get('id') + '/contracts', {
-        method: 'GET'
-    })
-    
-    // конвертируем записи в объекты
-    contracts = yield contracts.map((contract) => (new Contract.default()).set(contract))
+    const contracts = yield (new Contract.default()).findByUser(ctx)
     
     const contractsListKeyboard = helpers.contractsListKeyboard(ctx, contracts)
     contractsListKeyboard.disable_web_page_preview = true
@@ -174,14 +166,14 @@ exports.newCommitViewAction = newCommitViewAction
  */
 const setContractInStoredObject = async(ctx, contract, text) => __awaiter(void 0, void 0, void 0, function* () {
     // Валидируем введенную строку
-    let correct = contract.validateFormat(ctx, text)
+    let correct = yield contract.validateFormat(ctx, text)
 
     if (correct !== null) {
         logger.default.debug(ctx, 'Setting new contract occupation to', text)
-    
+        
         contract.set(correct)
         contract.set({occupation: text})
-        contract.updateReadyState(ctx)
+        yield contract.updateReadyState(ctx)
     
         return true
     } else {
@@ -389,9 +381,7 @@ const newCommitSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function
     
     if (!ctx.session.SGUser) {
         logger.default.debug(ctx, 'user isn\'t defined')
-        return yield req.make('sendMessage', {
-            text: ctx.i18n.t('errors.goals.user_not_defined')
-        })
+        ctx.reply(ctx.i18n.t('errors.goals.user_not_defined'))
     }
     
     yield newCommit.save(ctx)
