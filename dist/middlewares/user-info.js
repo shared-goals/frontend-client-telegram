@@ -51,7 +51,10 @@ const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* (
         yield req.make(ctx, 'login', {
             method: 'POST',
             email: newUser.get('email'),
-            password: newUser.get('password')
+            password: newUser.get('password'),
+            provider: 'telegram',
+            username: newUser.get('username'),
+            id: newUser.get('telegram_id')
         }).then((response) => {
             if (response.hasOwnProperty('token')) {
                 logger.default.debug(ctx, 'Сессия авторизована, хэш: ', response.token)
@@ -85,6 +88,7 @@ const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* (
                 logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.SGUser.toJSON())
             })
         } else {
+            console.log(ctx.session.SGUser)
             logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.SGUser.toJSON())
         }
 
@@ -97,19 +101,23 @@ const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* (
         yield req.make(ctx, 'register', {
             method: 'POST',
             email: newUser.get('email'),
-            password: newUser.get('password')
+            password: newUser.get('password'),
+            provider: 'telegram',
+            username: newUser.get('username'),
+            id: newUser.get('telegram_id')
         }).then((response) => {
     
             logger.default.debug(ctx, 'New user has been created')
     
-            session.saveToSession(ctx, 'SGUser', response)
+            newUser.set(response || {})
+            session.saveToSession(ctx, 'SGUser', newUser)
         
             // ctx.reply(ctx.i18n.t('scenes.start.user_registered', {username: ctx.from.username}))
         }).catch((response) => {
             logger.default.debug(ctx, 'Ошибка регистрации пользователя: ', response.message)
         })
     
-        getUserInfo(ctx)
+        yield getUserInfo(ctx)
 
         // ctx.reply(ctx.i18n.t('errors.start.authorization_fail'))
     }
