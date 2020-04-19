@@ -38,9 +38,10 @@ const contractsListViewAction = async(ctx) => __awaiter(void 0, void 0, void 0, 
     
     const contracts = yield (new Contract.default()).findByUser(ctx)
     
-    const contractsListKeyboard = helpers.contractsListKeyboard(ctx, contracts)
+    const contractsListKeyboard = helpers.contractsListKeyboard(ctx, contracts, false)
     contractsListKeyboard.disable_web_page_preview = true
     yield ctx.reply(ctx.i18n.t('scenes.contracts.list_all.welcome_text'), contractsListKeyboard)
+    yield ctx.reply(ctx.i18n.t('scenes.contracts.list_all.other_contracts'), helpers.contractsListFilteredKeyboard(ctx, contracts))
     return true
 })
 
@@ -194,6 +195,17 @@ exports.setContractInStoredObject = setContractInStoredObject
 exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
     // Смотрим в каким действием была нажатая кнопка, в зависимости от этого сетим стейты
     switch (ctx.callbackQuery && ctx.callbackQuery.data) {
+        case 'switchMoreContractsMode': {
+            let moreContractsMode = ctx.session.moreContractsMode
+            if (moreContractsMode === null || typeof moreContractsMode === 'undefined') {
+                moreContractsMode = true
+            } else {
+                moreContractsMode = !moreContractsMode
+            }
+            session.saveToSession(ctx, 'moreContractsMode', moreContractsMode)
+            contractsListViewAction(ctx)
+            break
+        }
         case 'setNewCommitDuration': {
             ctx.reply(ctx.i18n.t('scenes.commits.create_new.set_duration.text'))
             ctx.session.state = 'enterNewCommitDuration'

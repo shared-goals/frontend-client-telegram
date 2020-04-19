@@ -10,18 +10,58 @@ const Commit = require("../../models/Commit")
  *
  * @param ctx - Объект контекста
  * @param contracts
+ * @returns []
+ */
+function filterContractsList(contracts, filtered) {
+    return (contracts || [])
+        .filter((contract) => (filtered === false && contract.get('today') === true) || (filtered === true && contract.get('today') === false))
+        .map((contract) => {
+            return [
+                contract.get('goal').title
+                    + (contract.get('goal').code ? ' (' + contract.get('goal').code + ')' : '')
+                    + ': ' + contract.toString(),
+                JSON.stringify({ a: 'contractView', p: contract.get('goal').id })
+            ]
+        })
+}
+
+/**
+ * Генерирует главное меню сцены "Контракты" - меню со списком своих контрактов
+ *
+ * @param ctx - Объект контекста
+ * @param contracts
  * @returns {*|ExtraEditMessage}
  */
-function contractsListKeyboard(ctx, contracts) {
+function contractsListKeyboard(ctx, contracts, filtered) {
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard(
-        (contracts || []).map((contract) => {
-            return [m.callbackButton(contract.get('goal').title
-                + (contract.get('goal').code ? ' (' + contract.get('goal').code + ')' : '')
-                + ': ' + contract.toString(), JSON.stringify({ a: 'contractView', p: contract.get('goal').id }), false)]
-        }), {}))
+        filterContractsList(contracts, filtered)
+            .map((contract) => {
+                return [m.callbackButton(contract[0], contract[1], false)]
+            }),
+    {}))
 }
 
 exports.contractsListKeyboard = contractsListKeyboard
+
+/**
+ * Генерирует главное меню сцены "Контракты" - меню со списком своих контрактов
+ *
+ * @param ctx - Объект контекста
+ * @param contracts
+ * @returns {*|ExtraEditMessage}
+ */
+function contractsListFilteredKeyboard(ctx, contracts) {
+    return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard(
+        (ctx.session.moreContractsMode === true
+        ? filterContractsList(contracts, true)
+            .map((contract) => {
+                return [m.callbackButton(contract[0], contract[1], false)]
+            }) : [])
+        .concat([[m.callbackButton(ctx.session.moreContractsMode === true ? 'Скрыть' : 'Показать', 'switchMoreContractsMode', false)]]),
+    {}))
+}
+
+exports.contractsListFilteredKeyboard = contractsListFilteredKeyboard
 
 /**
  * Генерирует главное меню сцены "Контракты" - меню со списком своих контрактов

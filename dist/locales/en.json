@@ -57,7 +57,8 @@
             "welcome_more_text": "Choose an action",
             "list_all": {
                 "fetching": "Getting contracts...",
-                "welcome_text": "Your contracts:",
+                "welcome_text": "Your today contracts:",
+                "other_contracts": "Other contracts",
                 "button_text": "🗂 Contracts"
             }
         },
