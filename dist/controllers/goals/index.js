@@ -91,6 +91,8 @@ goals.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
     session.deleteFromSession(ctx, 'goalsScene')
+    session.deleteFromSession(ctx, 'newCommitId')
+    session.deleteFromSession(ctx, 'commits')
 }))
 
 goals.action(/newGoalView/, actions.newGoalViewAction)
@@ -98,6 +100,9 @@ goals.action(/goalsListView/, actions.goalsListViewAction)
 goals.action(/editContract/, actions.editContractAction)
 goals.action(/goalView/, actions.goalViewAction)
 goals.action(/newGoalSubmit/, actions.newGoalSubmit)
+
+const contractsActions = require('../contracts/actions')
+goals.action(/setCommit/, contractsActions.newCommitViewAction)
 
 goals.hears('goalView.+', actions.goalViewAction)
 

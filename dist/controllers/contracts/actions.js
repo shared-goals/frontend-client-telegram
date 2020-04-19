@@ -94,6 +94,7 @@ exports.contractViewAction = contractViewAction
 const newCommitViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0, function* () {
     // Разбираем переданные через контекст или директ-коллом аргументы
     data = common.getCallArguments(ctx, data)
+console.log(data)
     let commits = {}
     
     // Если это ввод параметров для создания новой цели
@@ -119,7 +120,6 @@ const newCommitViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0
                 whats_done: matches.groups.whats_done || '',
                 whats_next: matches.groups.whats_next || ''
             }
-            console.log(query)
             // Считаем длительность из часов и минут
             query.duration = durationParse(query.hours + 'h ' + query.minutes + 'min') / 1000 / 60
     
@@ -145,7 +145,7 @@ const newCommitViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0
         } else {
     
             // Иначе сетим объект из хэша
-            commits[ctx.session.newCommitId].set({ contract: yield (new Contract.default()).findById(ctx, data.p) })
+            commits[ctx.session.newCommitId].set({ contract: (yield (new Goal.default()).findById(ctx, data.p)).get('contract') })
     
             // Сохраняем объект нового коммита в сессию
             session.saveToSession(ctx, 'commits', commits)

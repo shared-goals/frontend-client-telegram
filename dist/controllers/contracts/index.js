@@ -91,6 +91,8 @@ contracts.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
     yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
     session.deleteFromSession(ctx, 'contractsScene')
+    session.deleteFromSession(ctx, 'newCommitId')
+    session.deleteFromSession(ctx, 'commits')
 }))
 
 // Кнопка "Назад" в основном меню с обработчиком - уходом со сцены
