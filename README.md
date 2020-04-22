@@ -1,4 +1,4 @@
-# Evemovies bot
+# Telegram bot for Shared Goals - Rich Version
 
 ### BETA version
 
