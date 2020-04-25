@@ -80,6 +80,16 @@ function Contract (data) {
     })
     
     /**
+     * Возвращает форматированную строку длительности
+     *
+     * @returns {string}
+     */
+    self.formatDuration = () => {
+        const duration = self.get('duration')
+        return duration ? (duration >= 60 ? (duration / 60) + 'h' : duration + 'min') : ''
+    }
+    
+    /**
      * Возвращает строку параметров занятости по объекту их данных
      *
      * @returns {string}
@@ -89,7 +99,7 @@ function Contract (data) {
         const week_days = self.get('week_days')
         const month_days = self.get('month_days')
         return duration && (week_days || month_days) ?
-            ((duration >= 60 ? (duration / 60) + 'h' : duration + 'min')
+            (self.formatDuration()
                 + ' every ' + (week_days.length > 0 ? (week_days.length === 7 ? 'day' : week_days.join(',')) : month_days.join(','))) : null
     }
     

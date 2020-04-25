@@ -35,7 +35,7 @@ function Goal (data) {
         owner: null,
         code: '',
         title: '',
-        text: '',
+        description: '',
         contract: new Contract.default(),
         archived: null,
         completed: null,
@@ -180,7 +180,6 @@ function Goal (data) {
     self.updateReadyState = (ctx) => {
         self.set({ready:
             self.get('title') !== null && self.get('title') !== '' &&
-            self.get('text') !== null && self.get('text') !== '' &&
             self.get('contract').get('ready') === true
         })
     }
