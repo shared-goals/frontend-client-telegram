@@ -23,9 +23,10 @@ const common = __importDefault(require("../../util/common"))
 const logger = __importDefault(require("../../util/logger"))
 const session = __importDefault(require("../../util/session"))
 const keyboards = require("../../util/keyboards")
-const Goal = require("../../models/Goal")
-const Contract = require("../../models/Contract")
-const Commit = require("../../models/Commit")
+const api = require('sg-node-api')
+const Goal = api.goal
+const Contract = api.contract
+const Commit = api.commit
 
 let shortcuts = {}
 
@@ -36,7 +37,7 @@ let shortcuts = {}
 const contractsListViewAction = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
     yield ctx.reply(ctx.i18n.t('scenes.contracts.list_all.fetching'))
     
-    const contracts = yield (new Contract.default()).findByUser(ctx)
+    const contracts = yield (new Contract()).findByUser(ctx)
     
     const contractsListKeyboard = helpers.contractsListKeyboard(ctx, contracts, false)
     contractsListKeyboard.disable_web_page_preview = true
@@ -58,11 +59,11 @@ const contractViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0,
 
     if (data !== null) {
         let contract
-        const goal = yield (new Goal.default()).find(ctx, data.p)
+        const goal = yield (new Goal()).find(ctx, data.p)
         if (goal !== null) {
             contract = goal.get('contract')
         } else {
-            contract = yield (new Contract.default()).findById(ctx, data.p)
+            contract = yield (new Contract()).findById(ctx, data.p)
         }
 
         const keyboard = helpers.contractViewKeyboard(ctx, contract)
@@ -104,7 +105,7 @@ console.log(data)
         // Создаем объект нового коммита, сетим в сессию
         commits = ctx.session.commits || {}
         session.saveToSession(ctx, 'newCommitId', Math.round(Math.random() * 1000000))
-        commits[ctx.session.newCommitId] = yield new Commit.default()
+        commits[ctx.session.newCommitId] = yield new Commit()
     
         // Пытаемся определить все параметры переданной строки вргументов коммита
         const matches = commits[ctx.session.newCommitId].re.exec(data.p)
@@ -125,12 +126,12 @@ console.log(data)
     
             // Определяем контракт из строки юзера и кода или хэша цели
             let contract
-            const goal = yield (new Goal.default())
+            const goal = yield (new Goal())
                 .find(ctx, !query.owner ? query.code : (query.owner + '/' + query.code))
             if (goal !== null) {
                 contract = goal.get('contract')
             } else {
-                contract = yield (new Contract.default()).findById(ctx, data.p)
+                contract = yield (new Contract()).findById(ctx, data.p)
             }
 
             // сетим контракт в объекте нового коммита
@@ -145,7 +146,7 @@ console.log(data)
         } else {
     
             // Иначе сетим объект из хэша
-            commits[ctx.session.newCommitId].set({ contract: (yield (new Goal.default()).findById(ctx, data.p)).get('contract') })
+            commits[ctx.session.newCommitId].set({ contract: (yield (new Goal()).findById(ctx, data.p)).get('contract') })
     
             // Сохраняем объект нового коммита в сессию
             session.saveToSession(ctx, 'commits', commits)
@@ -236,7 +237,7 @@ const editContractAction = async(ctx, data) => __awaiter(void 0, void 0, void 0,
     let goal = null
     
     if (data !== null) {
-        goal = yield (new Goal.default()).find(ctx, data.p)
+        goal = yield (new Goal()).find(ctx, data.p)
         ctx.session.updatingGoalId = goal.get('id')
         ctx.session.state = 'enterUpdatingGoalContract'
     } else {
@@ -286,13 +287,13 @@ exports.defaultHandler = async(ctx, params) => __awaiter(void 0, void 0, void 0,
                 currentContracts = ctx.session.contracts
                 contract = currentContracts[ctx.session.newContractId]
             } else if (ctx.session.state.match(/UpdatingGoal/)) {
-                const goal = yield (new Goal.default()).find(ctx, ctx.session.updatingGoalId)
+                const goal = yield (new Goal()).find(ctx, ctx.session.updatingGoalId)
                 contract = goal.get('contract')
             } else if (ctx.session.state.match(/NewCommit/)) {
                 currentCommits = ctx.session.commits
                 commit = currentCommits[ctx.session.newCommitId]
             } else if (ctx.session.state.match(/UpdatingCommit/)) {
-                commit = yield (new Commit.default()).find(ctx, ctx.session.updatingCommitId)
+                commit = yield (new Commit()).find(ctx, ctx.session.updatingCommitId)
             }
     
         }
@@ -391,7 +392,7 @@ const newCommitSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function
         return null
     }
     
-    if (!ctx.session.SGUser) {
+    if (!ctx.session.user) {
         logger.default.debug(ctx, 'user isn\'t defined')
         ctx.reply(ctx.i18n.t('errors.goals.user_not_defined'))
     }

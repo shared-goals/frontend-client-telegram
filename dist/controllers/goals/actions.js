@@ -20,9 +20,10 @@ const helpers = require("./helpers")
 const common = __importDefault(require("../../util/common"))
 const logger = __importDefault(require("../../util/logger"))
 const session = __importDefault(require("../../util/session"))
-const Goal = require("../../models/Goal")
-const User = require("../../models/User")
-const Contract = require("../../models/Contract")
+const api = require('sg-node-api')
+const User = api.user
+const Goal = api.goal
+const Contract = api.contract
 
 let shortcuts = {}
 
@@ -48,7 +49,7 @@ const goalsListViewAction = (ctx, user) => __awaiter(void 0, void 0, void 0, fun
     yield ctx.reply(ctx.i18n.t('scenes.goals.list_all.fetching') + (settedUser ? ' ' + user.get('username') : ''))
     
     // достаем объекты всех записей текущего юзера
-    let goals = yield (new Goal.default()).findAll(ctx, settedUser ? user.get('id') : null)
+    let goals = yield (new Goal()).findAll(ctx, settedUser ? user.get('id') : null)
     
     if (!goals || goals.length === 0) {
         ctx.reply((settedUser
@@ -72,20 +73,20 @@ const goalViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0, fun
     data = common.getCallArguments(ctx, data)
 
     if (data !== null) {
-        const goal = yield (new Goal.default()).find(ctx, data.p).then((g) => {return g})
+        const goal = yield (new Goal()).find(ctx, data.p).then((g) => {return g})
         if (goal === null) {
             ctx.reply('Цель не найдена')
             return
         }
 
-        let owner = ctx.session.SGUser
+        let owner = ctx.session.user
         const isMyGoal = (owner.get('id') === goal.get('owner').id)
         
         const keyboard = isMyGoal ? helpers.goalMyViewKeyboard(ctx, goal) : helpers.goalAnyViewKeyboard(ctx, goal)
         keyboard.disable_web_page_preview = true
         
         if (!isMyGoal) {
-            owner = yield (new User.default()).findById(ctx, goal.get('owner').id).then((g) => {return g})
+            owner = yield (new User()).findById(ctx, goal.get('owner').id).then((g) => {return g})
         }
     
         yield ctx.replyWithHTML(
@@ -94,7 +95,7 @@ const goalViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0, fun
             + `\r\nТекст:\r\n    ${goal.get('description')}`
             + (goal.get('contract') ? `\r\nМой контракт:\r\n    ${goal.get('contract').toString()}` : '')
             + (isMyGoal ? '' : `\r\nАвтор:\r\n    ${owner.get('email').replace(/@.+$/, '')}`)
-            + `\r\nСсылка:\r\n    <code>` + goal.getLink(ctx) + `</code>`
+            + `\r\nСсылка:\r\n    <code>` + goal.getTGLink(ctx) + `</code>`
         )
     
         yield ctx.reply('Действия:', keyboard)
@@ -120,13 +121,13 @@ const joinGoalAction = async(ctx, goalData) => __awaiter(void 0, void 0, void 0,
     if (matches && matches.groups) {
         // Пытаемся определить цель
         if (matches.groups.goal && typeof matches.groups.goal !== 'undefined') {
-            goal = yield (new Goal.default()).find(ctx, matches.groups.goal)
+            goal = yield (new Goal()).find(ctx, matches.groups.goal)
         }
     
         // Если контракт задан
         if (matches.groups.contract) {
             // Пытаемся распарсить строку контракта
-            contractData = yield ((new Contract.default()).validateFormat(ctx, matches.groups.contract))
+            contractData = yield ((new Contract()).validateFormat(ctx, matches.groups.contract))
             if (!contractData) {
                 logger.default.error(ctx, 'Ошибка парсинга строки контракта')
                 ctx.reply('Ошибка. Некорректно задана строка контракта: ' + matches.groups.contract)
@@ -136,7 +137,7 @@ const joinGoalAction = async(ctx, goalData) => __awaiter(void 0, void 0, void 0,
         // Если цель определена
         if (goal !== null && contractData !== null) {
             // const owner = (new User.default()).set(goal.get('owner'))
-            let contract = yield (new Contract.default()).findByGoalAndOwner(ctx, goal.get('id'), ctx.session.SGUser.get('id'))
+            let contract = yield (new Contract()).findByGoalAndOwner(ctx, goal.get('id'), ctx.session.user.get('id'))
         
             // Если контракт по этой цели у этого пользователя уже был
             if (contract !== null) {
@@ -144,7 +145,7 @@ const joinGoalAction = async(ctx, goalData) => __awaiter(void 0, void 0, void 0,
                 ctx.reply('По этой цели у Вас уже есть контракт. Для изменения контракта воспользуйтесь командой /contracts из главного раздела или кнопкой "Контракты" в главном меню')
             } else {
                 contractData.goal = {id: goal.get('id')}
-                contract = (new Contract.default()).set(contractData)
+                contract = (new Contract()).set(contractData)
                 yield contract.save(ctx)
                 ctx.reply('Данные контракта сохранены')
             }
@@ -173,7 +174,7 @@ exports.newGoalAnyButtonAction = async(ctx) => __awaiter(void 0, void 0, void 0,
         if (!ctx.session.newGoalId || typeof ctx.session.newGoalId === 'undefined') {
             goals = ctx.session.goals || {}
             session.saveToSession(ctx, 'newGoalId', Math.round(Math.random() * 1000000))
-            goals[ctx.session.newGoalId] = yield (new Goal.default())
+            goals[ctx.session.newGoalId] = yield (new Goal())
             session.saveToSession(ctx, 'goals', goals)
         }
     }
@@ -217,7 +218,7 @@ const editContractAction = async(ctx, data) => __awaiter(void 0, void 0, void 0,
     let goal = null
     
     if (data !== null) {
-        goal = yield (new Goal.default()).find(ctx, data.p)
+        goal = yield (new Goal()).find(ctx, data.p)
         ctx.session.updatingGoalId = goal.get('id')
         ctx.session.state = 'enterUpdatingGoalContract'
     } else {
@@ -261,7 +262,7 @@ exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, functio
             currentGoals = ctx.session.goals
             goal = currentGoals[ctx.session.newGoalId]
         } else if (ctx.session.state.match(/UpdatingGoal/)) {
-            goal = yield (new Goal.default()).find(ctx, ctx.session.updatingGoalId)
+            goal = yield (new Goal()).find(ctx, ctx.session.updatingGoalId)
         }
     }
 
@@ -289,9 +290,9 @@ exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, functio
             }
             
             case 'enterOwnerForGoalJoining': {
-                const owner = yield (new User.default().findByEmail(ctx, text + '@t.me'))
+                const owner = yield (new User().findByEmail(ctx, text + '@t.me'))
                 if (owner !== null) {
-                    if (owner.get('id') === ctx.session.SGUser.get('id')) {
+                    if (owner.get('id') === ctx.session.user.get('id')) {
                         ctx.reply('Нет смысла подключаться к Вашим собственным целям еще раз. Выберите другого пользователя')
                     } else {
                         goalsListViewAction(ctx, owner)
@@ -380,7 +381,7 @@ exports.newGoalSubmit = async(ctx) => __awaiter(void 0, void 0, void 0, function
         return null
     }
 
-    if (!ctx.session.SGUser) {
+    if (!ctx.session.user) {
         logger.default.debug(ctx, 'user isn\'t defined')
         ctx.reply(ctx.i18n.t('errors.goals.user_not_defined'))
     }

@@ -27,9 +27,9 @@ const session = require("./session")
  */
 function updateLanguage(ctx, newLang) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield req.make(ctx, 'users/' + ctx.session.SGUser.get('id'), {
+        yield req.make(ctx, 'users/' + ctx.session.user.get('id'), {
             method: 'PUT',
-            id: ctx.session.SGUser.get('id'),
+            id: ctx.session.user.get('id'),
             language: newLang
         }).then(() => {
             logger.default.debug(ctx, 'Updating language for user to %s', newLang)

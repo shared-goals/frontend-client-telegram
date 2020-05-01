@@ -26,7 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true })
 
 require('dotenv').config()
 
-require('./models')
+// require('./models')
 
 // Core libs
 const fs = __importDefault(require("fs"))

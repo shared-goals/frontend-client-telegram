@@ -15,7 +15,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 }
 
 const logger = __importDefault(require("../util/logger"))
-const req = __importDefault(require("../util/req"))
+const api = require('sg-node-api')
+const req = api.req
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
@@ -26,9 +27,9 @@ Object.defineProperty(exports, "__esModule", { value: true })
  * @param next - next-функция
  */
 exports.updateUserTimestamp = (ctx, next) => __awaiter(void 0, void 0, void 0, function* () {
-    yield req.make(ctx, 'users/' + ctx.session.SGUser.get('id'), {
+    yield req.make(ctx, 'users/' + ctx.session.user.get('id'), {
         method: 'PUT',
-        id: ctx.session.SGUser.get('id'),
+        id: ctx.session.user.get('id'),
         updatedAt: new Date().getTime()
     }).then(() => {
         logger.default.debug(ctx, 'Updating timestamp for user to now')

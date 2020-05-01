@@ -3,7 +3,8 @@
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const Telegraf = require("telegraf")
-const Commit = require("../../models/Commit")
+const api = require('sg-node-api')
+const Commit = api.commit
 
 /**
  * Генерирует главное меню сцены "Контракты" - меню со списком своих контрактов
@@ -83,7 +84,7 @@ function newCommitViewKeyboard(ctx, commitId) {
     if (typeof ctx.session.newCommitId !== 'undefined' && typeof ctx.session.commits !== 'undefined') {
         newCommit = ctx.session.commits[ctx.session.newCommitId]
     } else {
-        newCommit = new Commit.default()
+        newCommit = new Commit()
     }
     
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([

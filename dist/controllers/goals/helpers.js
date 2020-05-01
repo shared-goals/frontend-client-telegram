@@ -3,7 +3,8 @@
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const Telegraf = require("telegraf")
-const Goal = require("../../models/Goal")
+const api = require('sg-node-api')
+const Goal = api.goal
 
 /**
  * Генерирует главное меню сцены "Цели"
@@ -98,7 +99,7 @@ function newGoalViewKeyboard(ctx) {
     if (typeof ctx.session.newGoalId !== 'undefined' && typeof ctx.session.goals !== 'undefined') {
         newGoal = ctx.session.goals[ctx.session.newGoalId]
     } else {
-        newGoal = new Goal.default()
+        newGoal = new Goal()
     }
 
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([

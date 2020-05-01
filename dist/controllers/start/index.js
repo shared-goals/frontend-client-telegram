@@ -30,7 +30,7 @@ const start = new baseScene.default('start')
 
 start.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
-    if (session.SGUser) {
+    if (session.user) {
         yield ctx.reply(ctx.i18n.t('scenes.start.welcome_back'), mainKeyboard)
     }
     else {

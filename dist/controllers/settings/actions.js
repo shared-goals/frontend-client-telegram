@@ -17,8 +17,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true })
 
 const helpers = require("./helpers")
-const logger = __importDefault(require("../../util/logger"))
-const User_1 = __importDefault(require("../../models/User"))
 const language = require("../../util/language")
 const keyboards = require("../../util/keyboards")
 const session = require("../../util/session")
