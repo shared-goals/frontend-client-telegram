@@ -96,18 +96,17 @@ const newCommitViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0
     // Разбираем переданные через контекст или директ-коллом аргументы
     data = common.getCallArguments(ctx, data)
 console.log(data)
-    let commits = {}
+    let commits = ctx.session.commits || {}
     
     // Если это ввод параметров для создания новой цели
     if (data && data.hasOwnProperty('p') && typeof data.p !== 'undefined'
         && !ctx.session.newCommitId || typeof ctx.session.newCommitId === 'undefined') {
     
         // Создаем объект нового коммита, сетим в сессию
-        commits = ctx.session.commits || {}
         session.saveToSession(ctx, 'newCommitId', Math.round(Math.random() * 1000000))
         commits[ctx.session.newCommitId] = yield new Commit()
     
-        // Пытаемся определить все параметры переданной строки вргументов коммита
+        // Пытаемся определить все параметры переданной строки аргументов коммита
         const matches = commits[ctx.session.newCommitId].re.exec(data.p)
 
         // Если мы передали строку из короткой команды
@@ -155,6 +154,10 @@ console.log(data)
             newCommitViewKeyboard.disable_web_page_preview = true
             yield ctx.reply(ctx.i18n.t('scenes.commits.create_new.welcome_text'), newCommitViewKeyboard)
         }
+    } else {
+        const newCommitViewKeyboard = helpers.newCommitViewKeyboard(ctx)
+        newCommitViewKeyboard.disable_web_page_preview = true
+        yield ctx.reply(ctx.i18n.t('scenes.commits.create_new.welcome_text'), newCommitViewKeyboard)
     }
 })
 exports.newCommitViewAction = newCommitViewAction
@@ -260,7 +263,7 @@ exports.editContractAction = editContractAction
  *
  * @param ctx - Объект контекста
  */
-exports.defaultHandler = async(ctx, params) => __awaiter(void 0, void 0, void 0, function* () {
+exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const text = ctx.match.input
     logger.default.debug(ctx, 'Contracts default Handler:', text, 'with state', ctx.session.state)
     
