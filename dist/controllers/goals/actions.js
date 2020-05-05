@@ -90,7 +90,7 @@ const goalViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0, fun
         }
     
         yield ctx.replyWithHTML(
-            (goal.get('code') && goal.get('code')!=='' ? `Код:\r\n    <code>${goal.get('code')}</code>\r\n` : '')
+            (goal.get('key') && goal.get('key')!=='' ? `Код:\r\n    <code>${goal.get('key')}</code>\r\n` : '')
             + `Наименование:\r\n    <b>${goal.get('title')}</b>`
             + `\r\nТекст:\r\n    ${goal.get('description')}`
             + (goal.get('contract') ? `\r\nМой контракт:\r\n    ${goal.get('contract').toString()}` : '')
@@ -306,8 +306,8 @@ exports.defaultHandler = async(ctx) => __awaiter(void 0, void 0, void 0, functio
             // Ввод параметров для добавления новой цели
 
             case 'enterNewGoalCode': {
-                logger.default.debug(ctx, 'Setting new goal code to', text)
-                goal.set({code: text})
+                logger.default.debug(ctx, 'Setting new goal key to', text)
+                goal.set({key: text})
                 goal.updateReadyState(ctx)
 
                 currentGoals[ctx.session.newGoalId] = goal

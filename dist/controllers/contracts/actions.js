@@ -71,7 +71,7 @@ const contractViewAction = async(ctx, data) => __awaiter(void 0, void 0, void 0,
         
         yield ctx.replyWithHTML(
             `<i>Цель:</i>\r\n    <b>${contract.get('goal').title}</b>`
-                + (contract.get('goal').code ? ' (' + contract.get('goal').code + ')' : '') + `\r\n`
+                + (contract.get('goal').key ? ' (' + contract.get('goal').key + ')' : '') + `\r\n`
             + `<i>План контракта:</i>\r\n    <b>${contract.toString()}</b>`
         )
     
@@ -114,7 +114,7 @@ console.log(data)
             // Составляем объект данных из распарсенной строки
             const query = {
                 owner: matches.groups.owner || null,
-                code: matches.groups.code || null,
+                key: matches.groups.key || null,
                 hours: parseInt(matches.groups.hours || '0', 10),
                 minutes: parseInt(matches.groups.minutes || '0', 10),
                 whats_done: matches.groups.whats_done || '',
@@ -126,7 +126,7 @@ console.log(data)
             // Определяем контракт из строки юзера и кода или хэша цели
             let contract
             const goal = yield (new Goal())
-                .find(ctx, !query.owner ? query.code : (query.owner + '/' + query.code))
+                .find(ctx, !query.owner ? query.key : (query.owner + '/' + query.key))
             if (goal !== null) {
                 contract = goal.get('contract')
             } else {

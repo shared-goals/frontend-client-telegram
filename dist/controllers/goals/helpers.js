@@ -73,7 +73,7 @@ exports.goalAnyViewKeyboard = goalAnyViewKeyboard
 function goalsListKeyboard(ctx, goals) {
     return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard(
         (goals || []).map((goal) => {
-            return [m.callbackButton(goal.get('title') + (goal.get('code') ? ' (' + goal.get('code') + ')' : ''),
+            return [m.callbackButton(goal.get('title') + (goal.get('key') ? ' (' + goal.get('key') + ')' : ''),
                 JSON.stringify({ a: 'goalView', p: goal.get('id') }), false)]
         }), {}))
 }
@@ -110,7 +110,7 @@ function newGoalViewKeyboard(ctx) {
                     : defaults.icons.check['checked'] + ctx.i18n.t('scenes.goals.create_new.edit_title.button_text')),
                 'setNewGoalTitle', false),
             m.callbackButton(
-                (!newGoal || newGoal.get('code') === null || newGoal.get('code') === '' || typeof newGoal.get('code') === 'undefined'
+                (!newGoal || newGoal.get('key') === null || newGoal.get('key') === '' || typeof newGoal.get('key') === 'undefined'
                     ? defaults.icons.check['empty'] + ctx.i18n.t('scenes.goals.create_new.set_code.button_text')
                     : defaults.icons.check['checked'] + ctx.i18n.t('scenes.goals.create_new.edit_code.button_text')),
                 'setNewGoalCode', false)

@@ -19,7 +19,7 @@ function filterContractsList(contracts, filtered) {
         .map((contract) => {
             return [
                 contract.get('goal').title
-                    + (contract.get('goal').code ? ' (' + contract.get('goal').code + ')' : '')
+                    + (contract.get('goal').key ? ' (' + contract.get('goal').key + ')' : '')
                     + ': ' + contract.toString(),
                 JSON.stringify({ a: 'contractView', p: contract.get('goal').id })
             ]
