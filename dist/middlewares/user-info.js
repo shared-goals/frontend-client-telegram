@@ -59,9 +59,15 @@ const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* (
         }).then((response) => {
             if (response.hasOwnProperty('token')) {
                 logger.default.debug(ctx, 'Сессия авторизована, хэш: ', response.token)
-
+        
                 // ... значит логин произошел, фиксируем хэш в сессию
                 session.saveToSession(ctx, 'SGAuthToken', response.token)
+            }
+            if (response.hasOwnProperty('user')) {
+                // Сетим юзера в сессии
+                newUser.set(response.user || {})
+                session.saveToSession(ctx, 'user', newUser)
+                logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.user.toJSON())
             }
         }).catch((response) => {
             logger.default.debug(ctx, 'Сессия не авторизована, ошибка: ', response.message)
