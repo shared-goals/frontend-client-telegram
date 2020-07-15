@@ -103,35 +103,36 @@ const getUserInfo = (ctx, next) => __awaiter(void 0, void 0, void 0, function* (
 
             logger.default.debug(ctx, 'Пользователь определен в сессии: ', ctx.session.user.toJSON())
         }
-
+    
         // ctx.reply('Пользователь определен')
     } else {
-    
-        // ctx.reply(ctx.i18n.t('scenes.start.registering_user'))
-        logger.default.debug(ctx, 'Starting new user creation')
-    
-        yield req.make(ctx, 'register', {
-            method: 'POST',
-            email: newUser.get('email'),
-            password: newUser.get('password'),
-            provider: 'telegram',
-            username: newUser.get('username'),
-            id: newUser.get('telegram_id')
-        }).then((response) => {
-    
-            logger.default.debug(ctx, 'New user has been created')
-    
-            newUser.set(response || {})
-            session.saveToSession(ctx, 'user', newUser)
+        // Убираем автоматическую регистрацию, заменяем ее авторизацией на вебе пересылками из ТГ на веб и обратно
         
-            // ctx.reply(ctx.i18n.t('scenes.start.user_registered', {username: ctx.from.username}))
-        }).catch((response) => {
-            logger.default.debug(ctx, 'Ошибка регистрации пользователя: ', response.message)
-        })
-    
-        yield getUserInfo(ctx)
-
-        // ctx.reply(ctx.i18n.t('errors.start.authorization_fail'))
+        // // ctx.reply(ctx.i18n.t('scenes.start.registering_user'))
+        // logger.default.debug(ctx, 'Starting new user creation')
+        //
+        // yield req.make(ctx, 'register', {
+        //     method: 'POST',
+        //     email: newUser.get('email'),
+        //     password: newUser.get('password'),
+        //     provider: 'telegram',
+        //     username: newUser.get('username'),
+        //     id: newUser.get('telegram_id')
+        // }).then((response) => {
+        //
+        //     logger.default.debug(ctx, 'New user has been created')
+        //
+        //     newUser.set(response || {})
+        //     session.saveToSession(ctx, 'user', newUser)
+        //
+        //     // ctx.reply(ctx.i18n.t('scenes.start.user_registered', {username: ctx.from.username}))
+        // }).catch((response) => {
+        //     logger.default.debug(ctx, 'Ошибка регистрации пользователя: ', response.message)
+        // })
+        //
+        // yield getUserInfo(ctx)
+        //
+        // // ctx.reply(ctx.i18n.t('errors.start.authorization_fail'))
     }
     
     return typeof next === 'function' ? next() : null

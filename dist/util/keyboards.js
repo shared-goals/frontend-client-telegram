@@ -43,3 +43,16 @@ exports.getMainKeyboard = (ctx) => {
         mainKeyboardAbout
     }
 };
+
+/**
+ * Returns auth keyboard and its buttons according to the language
+ * @param ctx - telegram context
+ */
+exports.getAuthKeyboard = (ctx) => {
+    const link = process.env.WEB_HOST + '/users/link/tg/'
+        + ctx.update.message.from.id + ':' + ctx.update.message.from.username + '/' + ctx.tg.token
+        + '#account-connections'
+    return Telegraf.Extra.HTML().markup((m) => m.inlineKeyboard([
+        m.urlButton(ctx.i18n.t('scenes.settings.link_to_web_button'), link, false)
+    ], {}))
+}

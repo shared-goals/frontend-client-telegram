@@ -16,6 +16,7 @@
         "start": {
             "welcome_back": "Glad to see you back. What are you up to?",
             "new_account": "Account has been successfully created.",
+            "need_auth": "Web-account authorization required",
             "bot_description": "Few words about SharedGoals service, to whom it may concern, how to make deal with it and so on",
             "lets_go": "Let's go!"
         },
@@ -136,6 +137,7 @@
             "language_changed": "Language has been changed.",
             "what_to_change": "What do you want to change?",
             "language_button": "🗣 Language",
+            "link_to_web_button": "Link to web-account",
             "account_summary_button": "🔑 Account summary",
             "back_button": "◀️ Back",
             "settings": "Settings"

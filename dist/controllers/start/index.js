@@ -16,11 +16,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 
 Object.defineProperty(exports, "__esModule", { value: true })
 
+require('dotenv').config()
+
 const Stage = __importDefault(require("telegraf/stage"))
 const baseScene = __importDefault(require("telegraf/scenes/base"))
 const actions = require("./actions")
 const helpers = require("./helpers")
 const logger = __importDefault(require("../../util/logger"))
+const userInfo = require("../../middlewares/user-info")
 
 const session = __importDefault(require("../../util/session"))
 const keyboards = require("../../util/keyboards")
@@ -29,18 +32,26 @@ const { leave } = Stage.default
 const start = new baseScene.default('start')
 
 start.enter((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
-    if (session.user) {
+    // Подключаем связь с пользователем из внешнего API
+    userInfo.getUserInfo(ctx)
+    
+    if (ctx.session.user) {
+        const mainKeyboard = keyboards.getMainKeyboard(ctx)
         yield ctx.reply(ctx.i18n.t('scenes.start.welcome_back'), mainKeyboard)
+    
+        yield ctx.reply('Choose language / Выбери язык', helpers.getLanguageKeyboard())
     }
     else {
-        yield ctx.reply('Choose language / Выбери язык', helpers.getLanguageKeyboard())
+        const authKeyboard = keyboards.getAuthKeyboard(ctx)
+        yield ctx.reply(ctx.i18n.t('scenes.start.need_auth'), authKeyboard)
     }
 }))
 
 start.leave((ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
-    yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
+    if (ctx.session.user) {
+        const { mainKeyboard } = keyboards.getMainKeyboard(ctx)
+        yield ctx.reply(ctx.i18n.t('shared.what_next'), mainKeyboard)
+    }
 }))
 
 start.command('saveme', leave())

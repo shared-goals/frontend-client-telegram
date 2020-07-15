@@ -28,7 +28,7 @@
     "parse-duration": "^0.1.2",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
-    "sg-node-api": "^1.1.18",
+    "sg-node-api": "^1.1.19",
     "string-similarity": "^3.0.0",
     "telegraf": "^3.25.0",
     "telegraf-i18n": "^6.4.0",
